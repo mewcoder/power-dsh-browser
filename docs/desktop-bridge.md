@@ -1,5 +1,26 @@
 # Recoverable Desktop network bridge installer
 
+## 一键安装（推荐）
+
+```sh
+npm run bridge:status    # 只读诊断：原始 / 已安装 / 未知
+npm run bridge           # 安装或修复；自动等待 DSH 关闭，装完自动重开
+npm run bridge:restore   # 还原到原始归档
+```
+
+`npm run bridge` 会先自愈检测当前归档状态：
+
+| 状态 | 行为 |
+| --- | --- |
+| `original` | 生成并安装补丁，然后重开 DSH |
+| `installed` | 已是最新，直接重开（或提示无需操作） |
+| `unknown` | **拒绝覆盖**，提示先 restore 或重装 DSH |
+| `missing` | 报错退出 |
+
+它**不会杀进程**：需要关闭时会等待（最多 5 分钟），超时则不做任何修改。每次替换都有哈希校验，原始归档始终保留。
+
+## 底层命令（需要精确控制时）
+
 This installer supports only DSH Desktop **0.2.2-rc.1**, build `c59d10aff167ad7eefead4b3a9082fb57c8fbfe8`, with the exact original main/preload SHA256 allowlist in [the patch helper](../scripts/desktop-bridge-patch.mjs). It requires Node.js 22 or newer and macOS metadata tools. It uses the host's existing authenticated IPC and owned guest leases. No TCP service or browser-control port is added.
 
 Run [the CLI](../scripts/desktop-bridge.mjs) from this project:

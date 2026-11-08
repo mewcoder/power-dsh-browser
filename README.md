@@ -19,8 +19,9 @@ npm pack --dry-run
 Network 桥的安装流程独立：
 
 ```sh
-node scripts/desktop-bridge.mjs --check
-node scripts/desktop-bridge.mjs --prepare
+npm run bridge:status   # 只读诊断
+npm run bridge          # 一键安装/修复（自动等待关闭并重开）
+npm run bridge:restore  # 还原原始归档
 ```
 
 预检和准备不会修改已安装应用。准备产物包含补丁、原归档备份和 manifest。**必须完全退出 DSH 后，才能按 manifest 执行 apply；安装器不会代替用户关闭应用。** 它会核对准确版本、源文件散列、Electron 加载策略、进程和原始备份，再原子替换归档；restore 只恢复该 manifest 对应的原始字节。

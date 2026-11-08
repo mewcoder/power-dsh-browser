@@ -60,7 +60,10 @@
     "test:chromium": "node scripts/chromium-smoke.mjs",
     "test:ui": "node scripts/ui-smoke.mjs",
     "test:electron-network": "node scripts/electron-network-smoke.mjs",
-    "check": "npm run build && npm test && node scripts/check.mjs"
+    "check": "npm run build && npm test && node scripts/check.mjs",
+    "bridge": "node scripts/bridge.mjs",
+    "bridge:status": "node scripts/bridge.mjs status",
+    "bridge:restore": "node scripts/bridge.mjs restore"
   },
   "author": "mewcoder",
   "license": "MIT",
