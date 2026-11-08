@@ -10,14 +10,22 @@ import { createAnnotationStore } from './annotation-store.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { registerAnnotationReferenceSource, createAnnotationBatchInserter } from './annotation-composer.js';
 const noopSubscribe = () => () => {}, noServices = () => null;
+// Host settings are authoritative; only known keys are adopted.
+const normalizeHostSettings = value => {
+  const result = {};
+  if (typeof value?.autoOpen === 'boolean') result.autoOpen = value.autoOpen;
+  if (typeof value?.homeUrl === 'string') result.homeUrl = value.homeUrl;
+  if (Number.isSafeInteger(value?.maxTabs) && value.maxTabs >= 1 && value.maxTabs <= 12) result.maxTabs = value.maxTabs;
+  return result;
+};
 const h = React.createElement;
 const CODEX_CURSOR = 'data:image/png;base64,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';
 const KIND = 'dsh-agent-browser', ID = 'dsh-browser';
 export const dictionaries = {
-  en: { title: 'DSHX Browser', description: 'Browse and annotate with your Agent', address: 'Search or enter a website', go: 'Go', back: 'Back', forward: 'Forward', reload: 'Reload page', stopLoading: 'Stop loading', stop: 'Stop Agent', close: 'Close tab', closePanel: 'Close browser', newTab: 'New tab', home: 'Home', session: 'Current conversation', unavailable: 'Open DSH Desktop to use the shared browser.', starting: 'Connecting…', connected: 'Connected', offline: 'Agent disconnected', reconnect: 'Reconnect', busy: 'Agent is working', idle: 'Ready', loading: 'Loading…', stopped: 'Agent control stopped', error: 'Something went wrong', dismiss: 'Dismiss', startTitle: 'A page to explore', startDescription: 'Open a website, ask your Agent to help, or leave feedback directly on the page.', shortcuts: 'Quick links', pageTitle: 'New tab', sessionDetail: 'This browser is connected to the current conversation.', details: 'Connection details', tabLimit: 'You can keep up to 12 tabs open.', navigate: 'Opening a page', snapshot: 'Reading the page', act: 'Interacting with the page', screenshot: 'Taking a screenshot', tabs: 'Managing tabs', pick: 'Select an element', comments: 'Page annotations', secure: 'HTTPS connection', insecure: 'HTTP connection', retry: 'Try again' },
-  zh: { title: 'DSHX 浏览器', description: '与 Agent 一起浏览、批注网页', address: '搜索或输入网址', go: '前往', back: '后退', forward: '前进', reload: '刷新页面', stopLoading: '停止加载', stop: '停止 Agent', close: '关闭标签页', closePanel: '关闭浏览器', newTab: '新标签页', home: '主页', session: '当前会话', unavailable: '请在 DSH Desktop 中使用共享浏览器。', starting: '正在连接…', connected: '已连接', offline: 'Agent 连接已断开', reconnect: '重新连接', busy: 'Agent 正在操作', idle: '就绪', loading: '加载中…', stopped: '已停止 Agent 控制', error: '暂时无法完成此操作', dismiss: '关闭提示', startTitle: '从这里开始探索', startDescription: '打开一个网页，让 Agent 帮你操作，也可以直接在页面上留下反馈。', shortcuts: '快捷访问', pageTitle: '新标签页', sessionDetail: '此浏览器连接到当前聊天会话。', details: '连接详情', tabLimit: '最多可同时打开 12 个标签页。', navigate: '正在打开网页', snapshot: '正在阅读页面', act: '正在操作页面', screenshot: '正在截图', tabs: '正在管理标签页', pick: '选择页面元素', comments: '页面批注', secure: 'HTTPS 连接', insecure: 'HTTP 连接', retry: '重试' },
+  en: { title: 'DSHX Browser', description: 'Browse and annotate with your Agent', address: 'Search or enter a website', go: 'Go', back: 'Back', forward: 'Forward', reload: 'Reload page', stopLoading: 'Stop loading', stop: 'Stop Agent', close: 'Close tab', closePanel: 'Close browser', newTab: 'New tab', home: 'Home', session: 'Current conversation', unavailable: 'Open DSH Desktop to use the shared browser.', starting: 'Connecting…', connected: 'Connected', offline: 'Agent disconnected', reconnect: 'Reconnect', busy: 'Agent is working', idle: 'Ready', loading: 'Loading…', stopped: 'Agent control stopped', error: 'Something went wrong', dismiss: 'Dismiss', startTitle: 'A page to explore', startDescription: 'Open a website, ask your Agent to help, or leave feedback directly on the page.', shortcuts: 'Quick links', pageTitle: 'New tab', sessionDetail: 'This browser is connected to the current conversation.', details: 'Connection details', tabLimit: 'You can keep up to 12 tabs open.', navigate: 'Opening a page', snapshot: 'Reading the page', act: 'Interacting with the page', screenshot: 'Taking a screenshot', tabs: 'Managing tabs', pick: 'Select an element', comments: 'Page annotations', secure: 'HTTPS connection', insecure: 'HTTP connection', retry: 'Try again', settingsTitle: 'X Browser', settingsIntro: 'Preferences for the shared browser panel.', autoOpenLabel: 'Open the panel when a browser tool needs it', homeUrlLabel: 'New-tab home URL', maxTabsLabel: 'Maximum tabs', saved: 'Saved', saveFailed: 'Could not save', settingsOutdated: 'Update the plugin to edit these settings' },
+  zh: { title: 'DSHX 浏览器', description: '与 Agent 一起浏览、批注网页', address: '搜索或输入网址', go: '前往', back: '后退', forward: '前进', reload: '刷新页面', stopLoading: '停止加载', stop: '停止 Agent', close: '关闭标签页', closePanel: '关闭浏览器', newTab: '新标签页', home: '主页', session: '当前会话', unavailable: '请在 DSH Desktop 中使用共享浏览器。', starting: '正在连接…', connected: '已连接', offline: 'Agent 连接已断开', reconnect: '重新连接', busy: 'Agent 正在操作', idle: '就绪', loading: '加载中…', stopped: '已停止 Agent 控制', error: '暂时无法完成此操作', dismiss: '关闭提示', startTitle: '从这里开始探索', startDescription: '打开一个网页，让 Agent 帮你操作，也可以直接在页面上留下反馈。', shortcuts: '快捷访问', pageTitle: '新标签页', sessionDetail: '此浏览器连接到当前聊天会话。', details: '连接详情', tabLimit: '最多可同时打开 12 个标签页。', navigate: '正在打开网页', snapshot: '正在阅读页面', act: '正在操作页面', screenshot: '正在截图', tabs: '正在管理标签页', pick: '选择页面元素', comments: '页面批注', secure: 'HTTPS 连接', insecure: 'HTTP 连接', retry: '重试', settingsTitle: 'X Browser', settingsIntro: '共享浏览器面板的偏好设置。', autoOpenLabel: '浏览器工具需要时自动打开面板', homeUrlLabel: '新标签默认主页', maxTabsLabel: '最大标签数', saved: '已保存', saveFailed: '保存失败', settingsOutdated: '请更新插件后再编辑这些设置' },
 };
-export const inject = ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs', 'remote'];
+export const inject = ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs', 'remote', 'configForms'];
 export async function apply(ctx) {
   const namespace = 'dshAgentBrowser', t = ctx.locale.bind(namespace);
   ctx.effect(() => ctx.locale.register(namespace, dictionaries));
@@ -40,9 +48,47 @@ export async function apply(ctx) {
     return () => { source.dispose(); if (referenceSource === source) { referenceSource = null; publishDraftServices(); } };
   }));
   await ctx.remote.$mount({ package: ID, descriptors: RPC });
-  ctx.inject(['remote.dshBrowser', 'workspaces'], scope => {
+  ctx.inject(['remote.dshBrowser', 'workspaces', 'configForms'], scope => {
     scope.effect(() => scope.sidebarRightTabs.register({ id: ID, kind: KIND, title: () => t('title'), keepMounted: true, guide: [{ id: 'open', title: () => t('title'), description: () => t('description') }] }));
     scope.effect(() => scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: ID, locale: namespace, inject: sessionId => ({ sessionId, remote: scope.remote, workspaces: scope.workspaces, draftSource, localeSource }) }, BrowserPanel)));
+    // Settings → X Browser. Reads/writes the Host settings document through the
+    // shared config form, so preferences follow the account and survive reloads.
+    scope.effect(() => {
+      if (!scope.configForms) return () => {};
+      const form = scope.configForms.get('dsh-x-browser');
+      // Expose the shared form to the panel component without prop drilling.
+      globalThis.__dshBrowserConfigForms = scope.configForms;
+      const clearGlobal = () => { if (globalThis.__dshBrowserConfigForms === scope.configForms) delete globalThis.__dshBrowserConfigForms; };
+      const SettingsPage = () => {
+        const snapshot = React.useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot);
+        const value = snapshot?.value ?? {};
+        const [draftHome, setDraftHome] = React.useState(value.homeUrl ?? '');
+        const [notice, setNotice] = React.useState('');
+        React.useEffect(() => { setDraftHome(value.homeUrl ?? ''); }, [value.homeUrl]);
+        const save = async (field, next) => {
+          setNotice('');
+          try {
+            await scope.configForms.describe().load();
+            const latest = form.getSnapshot();
+            if (latest.status !== 'ready') throw new Error(t('settingsOutdated'));
+            if (!await form.set(field, next)) throw new Error(t('saveFailed'));
+            setNotice(t('saved'));
+          } catch (error) { setNotice(error?.message || t('saveFailed')); }
+        };
+        const row = { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--dsw-alias-border-l3, #e8eaee)' };
+        const input = { padding: '4px 8px', border: '1px solid var(--dsw-alias-border-l3, #e8eaee)', borderRadius: 6, background: 'var(--dsw-alias-bg-base, #fff)', color: 'inherit', minWidth: 220 };
+        return h('section', { style: { padding: '4px 2px', display: 'grid', gap: 4 } },
+          h('h2', { style: { margin: '0 0 4px', fontSize: 16 } }, t('settingsTitle')),
+          h('p', { style: { margin: '0 0 8px', opacity: .7, fontSize: 13 } }, t('settingsIntro')),
+          h('label', { style: row }, h('input', { type: 'checkbox', checked: value.autoOpen !== false, onChange: event => void save('autoOpen', event.target.checked) }), t('autoOpenLabel')),
+          h('label', { style: row }, h('span', { style: { flex: 1 } }, t('homeUrlLabel')), h('input', { type: 'text', value: draftHome, placeholder: 'https://…', spellCheck: false, style: input, onChange: event => setDraftHome(event.target.value), onBlur: () => void save('homeUrl', draftHome) })),
+          h('label', { style: row }, h('span', { style: { flex: 1 } }, t('maxTabsLabel')), h('input', { type: 'number', min: 1, max: 12, value: value.maxTabs ?? 12, style: { ...input, minWidth: 90, width: 90 }, onChange: event => void save('maxTabs', Number(event.target.value)) })),
+          notice && h('p', { style: { margin: '8px 0 0', fontSize: 13, opacity: .8 } }, notice));
+      };
+      const releaseSection = scope.slots.register({ name: 'settings.section', id: 'dsh-x-browser', order: 60, locale: namespace, label: () => t('settingsTitle') }, SettingsPage);
+      const releaseIcon = scope.slots.register({ name: 'settings.section.icon', id: 'dsh-x-browser' }, ({ size = 16 } = {}) => h(Icon, { name: 'globe', size }));
+      return () => { releaseSection(); releaseIcon(); clearGlobal(); };
+    });
     // Open the Agent Browser panel only when a browser tool actually needs it: the
     // Host records a short-lived demand, this loaded Client notices it and opens
     // the tab. Closing the panel normally keeps it closed until the next need.
@@ -83,6 +129,17 @@ export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, dra
   const container = React.useRef(null), controls = React.useRef(null), address = React.useRef(null);
   const [view, setView] = React.useState({ activeTabId: null, tabs: [] });
   const [settings, setSettings] = React.useState(() => loadSettings()), [settingsOpen, setSettingsOpen] = React.useState(false);
+  // Host settings win when available; localStorage keeps the panel usable offline.
+  React.useEffect(() => {
+    const forms = globalThis.__dshBrowserConfigForms;
+    if (!forms) return;
+    try {
+      const form = forms.get('dsh-x-browser');
+      const apply = () => { const v = form.getSnapshot()?.value; if (v) setSettings(current => ({ ...current, ...normalizeHostSettings(v) })); };
+      apply();
+      return form.subscribe(apply);
+    } catch { return; }
+  }, []);
   const [agentPoint, setAgentPoint] = React.useState(null), [cursorShown, setCursorShown] = React.useState(false);
   const [homeDraft, setHomeDraft] = React.useState(() => settings.homeUrl);
   const settingsLabels = String(locale).startsWith('zh')

@@ -24,3 +24,6 @@ DSHX 是一套面向 DSH 的精品插件系列。每个插件都必须达到“�
 ## 当前系列
 - `dsh-x-browser` — 会话共享浏览器面板 + Agent 工具 + 网络读取
 - 规划：`dshx-annotate`、`dshx-network`（按需拆分）
+
+## 设置页
+插件设置入口统一命名为 **X Browser**（中英文一致），位于「设置 → X Browser」。面板本身仍保留各自名称。

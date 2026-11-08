@@ -1,9 +1,17 @@
+import z from '@deepseek-ai/schemastery';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import { Broker, BrowserError, LIMITS, ownerOf, sessionOf, abortable } from './protocol.js';
 import { RPC } from './rpc.js';
 import { AnnotationArchive } from './annotation-archive.js';
 export const inject = ['tools', 'typert'];
+// Preferences live in the Host settings document so they follow the account and
+// are editable from Settings → X Browser, not just from the panel's gear.
+export const Config = z.object({
+  autoOpen: z.boolean().default(true),
+  homeUrl: z.string().default(''),
+  maxTabs: z.natural().min(1).max(12).default(12),
+});
 export class BrowserService extends TypertRemoteService {
   constructor(ctx, broker, annotations) { super(ctx, 'dshBrowser'); this.broker = broker; this.annotations = annotations; }
   connect(sessionId, instance) { return this.broker.connect(sessionId, instance, ownerOf(this.ctx.invocation)); }
