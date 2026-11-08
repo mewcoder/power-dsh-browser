@@ -1,0 +1,8 @@
+node_modules/
+artifacts/
+.reference/
+lib/*.map
+*.tgz
+.DS_Store
+*.log
+docs/research/

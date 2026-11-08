@@ -1,0 +1,75 @@
+{
+  "name": "dsh-x-browser",
+  "version": "1.0.0",
+  "description": "DSHX · Session-bound shared browser panel and Agent tools for DSH Desktop (ZCode/Qoder-level)",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "scripts",
+    "test",
+    "cordis.patch.yml",
+    "README.md",
+    "SPEC.md",
+    "native",
+    "docs/*.md",
+    "BRAND.md",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "dsh": "0.2.2-rc.1",
+    "node": ">=22"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1",
+    "esbuild": "^0.25.0",
+    "happy-dom": "^21.0.4",
+    "react": "^18.3.1"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:chromium": "node scripts/chromium-smoke.mjs",
+    "test:ui": "node scripts/ui-smoke.mjs",
+    "test:electron-network": "node scripts/electron-network-smoke.mjs",
+    "check": "npm run build && npm test && node scripts/check.mjs"
+  },
+  "author": "mewcoder",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mewcoder/dsh-x-browser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mewcoder/dsh-x-browser/issues"
+  },
+  "homepage": "https://github.com/mewcoder/dsh-x-browser#readme"
+}
