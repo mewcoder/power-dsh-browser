@@ -1,6 +1,6 @@
 {
   "name": "dsh-x-browser",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "DSHX · Session-bound shared browser panel and Agent tools for DSH Desktop (ZCode/Qoder-level)",
   "type": "module",
   "main": "lib/index.js",

@@ -1,8 +1,8 @@
 # dsh-x-browser · DSHX
 
-DSHX 系列的 DSH Desktop 独立 Cordis Bundle：用户与 Agent 在聊天旁共享插件自己的 Electron webview。**1.0.0** 增加 owned-guest Network 桥接和 `browser_network`：读取真实请求/响应头、POST 数据、完成后的响应正文、重定向与失败状态。多标签、导航、DOM/样式、控制台、截图和已有批注功能继续保留。
+DSHX 系列的 DSH Desktop 独立 Cordis Bundle：用户与 Agent 在聊天旁共享插件自己的 Electron webview。**1.1.0** 增加 owned-guest Network 桥接和 `browser_network`：读取真实请求/响应头、POST 数据、完成后的响应正文、重定向与失败状态。多标签、导航、DOM/样式、控制台与截图功能继续保留。
 
-版本 **1.0.0**（能力对齐 ZCode / Qoder 级别）。目标为 **DSH 0.2.2-rc.1 / macOS Desktop**。基础插件使用 DSH 公开 webview 接口；Network 另外需要用户已授权的宿主桥接补丁。1.0.0 的代码检查、受控测试与宿主实际加载/真实页面验收分别记录，不把构建成功或假 debugger 测试当作已安装。
+版本 **1.1.0**（能力对齐 ZCode / Qoder 级别）。目标为 **DSH 0.2.2-rc.1 / macOS Desktop**。基础插件使用 DSH 公开 webview 接口；Network 另外需要用户已授权的宿主桥接补丁。1.1.0 的代码检查、受控测试与宿主实际加载/真实页面验收分别记录，不把构建成功或假 debugger 测试当作已安装。
 
 ## 构建与安装
 
@@ -46,10 +46,8 @@ npm run bridge:restore  # 还原原始归档
 | browser_network | owned guest 的真实网络捕获、头/状态和正文读取 |
 | browser_cap | 进阶能力：capabilities / emulate·clearEmulation / cookies / accessibility / CDP input（截图见下） |
 | browser_act / browser_screenshot | 原生输入动作和模型可见 PNG（视口截图） |
-| browser_annotations | 用户确认后的会话反馈读取与处理标记 |
 | browser_stop | 撤销当前控制并请求停止网络捕获 |
 
-已有元素批注只写当前会话草稿，需用户审核后发送；插件不自动发送消息。具体流程见 [批注说明](docs/annotations.md)。
 
 ## 设置
 面板工具栏的齿轮可打开轻量设置（本地持久化）：

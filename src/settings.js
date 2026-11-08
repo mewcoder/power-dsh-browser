@@ -1,10 +1,12 @@
 // DSHX Browser preferences. Kept client-side for now so the panel works without a
 // Host schema; every value is validated before use and stored in localStorage.
+import { MAX_TABS, DEFAULT_AUTO_OPEN, DEFAULT_HOME_URL } from './constants.js';
+
 export const SETTINGS_KEY = 'dshx-browser.settings.v1';
 export const SETTINGS_DEFAULTS = Object.freeze({
-  autoOpen: true,
-  homeUrl: '',
-  maxTabs: 12,
+  autoOpen: DEFAULT_AUTO_OPEN,
+  homeUrl: DEFAULT_HOME_URL,
+  maxTabs: MAX_TABS,
   maxRequests: 200,
   maxBodyBytes: 1048576,
   maxTotalBodyBytes: 8388608,
@@ -26,7 +28,7 @@ export function normalizeSettings(input = {}) {
   return {
     autoOpen: typeof value.autoOpen === 'boolean' ? value.autoOpen : SETTINGS_DEFAULTS.autoOpen,
     homeUrl: httpUrl(value.homeUrl),
-    maxTabs: clampInt(value.maxTabs, SETTINGS_DEFAULTS.maxTabs, 1, 12),
+    maxTabs: clampInt(value.maxTabs, SETTINGS_DEFAULTS.maxTabs, 1, MAX_TABS),
     maxRequests: clampInt(value.maxRequests, SETTINGS_DEFAULTS.maxRequests, 1, 500),
     maxBodyBytes: clampInt(value.maxBodyBytes, SETTINGS_DEFAULTS.maxBodyBytes, 1024, 2 * 1024 * 1024),
     maxTotalBodyBytes: clampInt(value.maxTotalBodyBytes, SETTINGS_DEFAULTS.maxTotalBodyBytes, 1024 * 1024, 16 * 1024 * 1024),

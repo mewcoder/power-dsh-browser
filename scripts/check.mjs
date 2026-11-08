@@ -18,6 +18,6 @@ const client = declaration.factory(request => { requests.push(request); if (requ
 assert(requests.length > 0 && requests.every(request => request === 'react')); assert.deepEqual([...new Set(requests)], ['react']); assert.equal(typeof client.apply, 'function');
 const { toolDefinitions } = await import('../lib/index.js');
 const tools = toolDefinitions({}, {});
-assert.deepEqual(tools.map(t => t.name), ['browser_status', 'browser_annotations', 'browser_tabs', 'browser_navigate', 'browser_snapshot', 'browser_inspect', 'browser_console', 'browser_network', 'browser_cap', 'browser_act', 'browser_screenshot', 'browser_stop']);
+assert.deepEqual(tools.map(t => t.name), ['browser_status', 'browser_tabs', 'browser_navigate', 'browser_snapshot', 'browser_inspect', 'browser_console', 'browser_network', 'browser_cap', 'browser_act', 'browser_screenshot', 'browser_stop']);
 for (const t of tools) assert(!('sessionId' in t.parameters.properties));
-console.log('Static syntax, lazy Client bundle, external baseline and twelve tool contracts verified.');
+console.log('Static syntax, lazy Client bundle, external baseline and eleven tool contracts verified.');

@@ -197,8 +197,12 @@ function envelope(value) {
   return JSON.parse(json);
 }
 
+// `build` identifies the bridge surface. The plugin compares it with its own
+// expected value so a stale patch reports "reinstall the bridge" instead of
+// silently failing on a missing operation.
+const BRIDGE_BUILD = '2026-11-08.1';
 const capabilities = () => ({
-  version: 1, operations: [...OPERATIONS], network: true, screenshot: true,
+  version: 1, build: BRIDGE_BUILD, operations: [...OPERATIONS], network: true, screenshot: true,
   emulate: true, cookies: true, accessibility: true, input: true,
   downloads: true, upload: true,
 });

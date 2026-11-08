@@ -1,5 +1,7 @@
 import { BrowserError, abortable } from './protocol.js';
 
+// Keep in sync with native/desktop-browser-bridge.js BRIDGE_BUILD.
+export const EXPECTED_BRIDGE_BUILD = '2026-11-08.1';
 const ACTIONS = new Set(['capabilities', 'screenshot', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input', 'downloads', 'clearDownloads', 'upload', 'downloadCancel']);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const pick = (source, keys) => Object.fromEntries(keys.filter(key => source[key] !== undefined).map(key => [key, source[key]]));
@@ -38,6 +40,14 @@ export class GuestCap {
     // capabilities rejects any options key; other ops accept an optional object.
     if (Object.keys(options).length > 0) payload.options = options;
     return payload;
+  }
+  // A bridge installed from an older patch may lack newer operations; surface
+  // that as an explicit reinstall request rather than an opaque failure.
+  async verify() {
+    if (!this.available()) throw new BrowserError('CAP_BRIDGE_UNAVAILABLE');
+    const caps = await this.invoke({ operation: 'capabilities', lease: this.lease });
+    if (caps.build !== EXPECTED_BRIDGE_BUILD) throw new BrowserError('BRIDGE_OUTDATED', `Installed bridge build ${caps.build ?? 'unknown'} does not match ${EXPECTED_BRIDGE_BUILD}; reinstall the bridge`);
+    return caps;
   }
   async invoke(payload) {
     if (!this.available()) throw new BrowserError('CAP_BRIDGE_UNAVAILABLE', 'Install and load the owned-page Desktop bridge');

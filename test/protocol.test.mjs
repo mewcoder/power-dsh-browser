@@ -60,7 +60,7 @@ test('timeout, heartbeat expiry, peer closure and Host unload settle pending wor
   }
 });
 test('strict RPC descriptors share exact positional contract and bound tokens', () => {
-  assert.deepEqual(RPC.map(x => x.method), ['connect', 'openRequested', 'poll', 'reply', 'stop', 'disconnect', 'publishAnnotations']);
+  assert.deepEqual(RPC.map(x => x.method), ['connect', 'openRequested', 'poll', 'reply', 'stop', 'disconnect']);
   assert.throws(() => RPC[0].parameters[0].codec.create().parse(''), /Invalid token/);
   assert.throws(() => RPC[3].parameters[2].codec.create().parse(-1), /Invalid epoch/);
 });

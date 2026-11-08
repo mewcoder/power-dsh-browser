@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+重构与清理版本，功能对齐 1.0.0 并移除批注。
+
+### 移除
+- 批注功能整体移除（元素选取、批注存储、引用片、`browser_annotations` 工具）。后续将以独立模块重新实现。
+
+### 重构
+- `client.js` 拆分：`locale.js`（文案）、`cursor-asset.js`（光标资源）、`agent-cursor.js`（光标/涟漪组件）、`use-panel-settings.js`（配置同步）。
+- 新增 `constants.js`：标签数上限等常量单点定义，Host schema / Client / 标签管理共用。
+- 宿主桥新增 `build` 版本标识与客户端校验：桥过旧时报 `BRIDGE_OUTDATED`，不再静默失败。
+
 ## 1.0.0
 
 第一个稳定版。目标能力对齐 ZCode / Qoder 级别的应用内浏览器，网络能力更强。

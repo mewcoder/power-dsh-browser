@@ -1,11 +1,12 @@
 import { id, BrowserError, abortable, httpUrl } from './protocol.js';
+import { MAX_TABS } from './constants.js';
 import { PageRunner } from './runner.js';
 
 // One panel owns every guest below it. Tab switching never transfers a guest
 // lease, and references from one tab cannot address another tab's document.
 export class SessionTabs {
   entries = new Map(); activeTabId = null; closed = false; request = null;
-  constructor({ createPage, createContainer, workspace, signal, maxTabs = 12, onChange = () => {}, onActivity = () => {}, onSwitch = () => {}, onClose = () => {} }) {
+  constructor({ createPage, createContainer, workspace, signal, maxTabs = MAX_TABS, onChange = () => {}, onActivity = () => {}, onSwitch = () => {}, onClose = () => {} }) {
     Object.assign(this, { createPage, createContainer, workspace, signal, maxTabs, onChange, onActivity, onSwitch, onClose });
   }
   list() { return { activeTabId: this.activeTabId, tabs: [...this.entries.values()].map(entry => ({ tabId: entry.tabId, ...entry.page.status() })) }; }

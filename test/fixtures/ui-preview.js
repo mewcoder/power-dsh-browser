@@ -73,7 +73,7 @@ async function transport(route, data) {
   if (!result.ok) throw Object.assign(new Error(result.error?.message || 'FIXTURE_TRANSPORT_FAILED'), { code: result.error?.code });
   return result.value;
 }
-const remote = { dshBrowser: Object.fromEntries(['connect', 'openRequested', 'poll', 'reply', 'stop', 'disconnect', 'publishAnnotations'].map(method => [method, async (...args) => {
+const remote = { dshBrowser: Object.fromEntries(['connect', 'openRequested', 'poll', 'reply', 'stop', 'disconnect'].map(method => [method, async (...args) => {
   try { return { ok: true, value: await transport('/fixture-rpc', { method, args }) }; }
   catch (error) { return { ok: false, error }; }
 }])) };

@@ -70,29 +70,6 @@ export const shellCss = `
 [data-dsh-agent-browser] .ab-shortcut{border:0;background:transparent;display:flex;align-items:center;flex-direction:column;gap:8px;min-width:72px;padding:8px;border-radius:12px;font-size:11px;color:var(--ab-muted)}
 [data-dsh-agent-browser] .ab-shortcut:hover{background:var(--ab-hover)}
 [data-dsh-agent-browser] .ab-shortcut b{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--ab-border);border-radius:13px;background:var(--ab-layer);font-size:16px;color:var(--ab-text)}
-[data-dsh-agent-browser] .ab-annotation-workspace{position:absolute;inset:0;z-index:80;pointer-events:none;display:flex;align-items:center;flex-direction:column;justify-content:flex-end;padding:12px;gap:9px}
-[data-dsh-agent-browser] .ab-annotation-bar{pointer-events:auto;display:flex;align-items:center;gap:4px;padding:6px 8px;border:1px solid color-mix(in srgb,var(--ab-text) 15%,transparent);border-radius:13px;background:var(--ab-text);color:var(--ab-bg);box-shadow:0 7px 24px #0003;max-width:100%;flex-shrink:0}
-[data-dsh-agent-browser] .ab-annotation-bar button{color:inherit;border:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:none;border-radius:7px;padding:6px;font-size:12px;white-space:nowrap}
-[data-dsh-agent-browser] .ab-annotation-bar button:hover:not(:disabled){background:color-mix(in srgb,currentColor 14%,transparent)}
-[data-dsh-agent-browser] .ab-annotation-bar button[aria-pressed=true]{background:color-mix(in srgb,currentColor 17%,transparent)}
-[data-dsh-agent-browser] .ab-annotation-count{font-size:12px;padding:0 4px;font-weight:550}
-[data-dsh-agent-browser] .ab-annotation-divider{width:1px;height:17px;background:color-mix(in srgb,currentColor 23%,transparent);margin:0 3px;flex-shrink:0}
-[data-dsh-agent-browser] .ab-annotation-bar .ab-annotation-submit{background:var(--ab-accent);color:white;padding:6px 10px}
-[data-dsh-agent-browser] .ab-annotation-card{pointer-events:auto;background:var(--ab-bg);color:var(--ab-text);border:1px solid var(--ab-border);border-radius:13px;box-shadow:0 6px 28px #0002;padding:12px;max-width:360px;width:100%;max-height:min(360px,65%);overflow:auto;text-align:left}
-[data-dsh-agent-browser] .ab-annotation-head{display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:8px;min-width:0}
-[data-dsh-agent-browser] .ab-annotation-head strong{flex:1;font-weight:550;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-[data-dsh-agent-browser] .ab-annotation-number{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;background:var(--ab-accent);color:white;font-size:11px;border-radius:50%;flex-shrink:0}
-[data-dsh-agent-browser] .ab-annotation-source{font-size:10px;color:var(--ab-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 0 8px}
-[data-dsh-agent-browser] .ab-annotation-excerpt{margin:0 0 8px;padding:6px 8px;background:var(--ab-layer);border-radius:6px;font-size:11px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-[data-dsh-agent-browser] .ab-annotation-comment{width:100%;min-height:72px;max-height:140px;resize:vertical;border:1px solid var(--ab-border);border-radius:8px;padding:8px;background:var(--ab-layer);color:var(--ab-text);font:inherit;font-size:12px;line-height:1.5}
-[data-dsh-agent-browser] .ab-annotation-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:8px}
-[data-dsh-agent-browser] .ab-annotation-action{border:1px solid var(--ab-border);background:var(--ab-layer);border-radius:7px;padding:5px 9px;font-size:11px;color:var(--ab-text)}
-[data-dsh-agent-browser] .ab-annotation-action[data-primary=true]{background:var(--ab-accent);border-color:var(--ab-accent);color:white}
-[data-dsh-agent-browser] .ab-annotation-item{padding:9px 0;border-top:1px solid var(--ab-border)}
-[data-dsh-agent-browser] .ab-annotation-item p{margin:5px 0 0;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
-[data-dsh-agent-browser] .ab-annotation-notice{pointer-events:auto;max-width:360px;width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--ab-border);background:var(--ab-bg);color:var(--ab-muted);font-size:11px;box-shadow:0 4px 16px #0001;line-height:1.5}
-[data-dsh-agent-browser] .ab-annotation-empty{font-size:12px;color:var(--ab-muted);padding:5px 0;line-height:1.6}
-@media(max-width:420px){[data-dsh-agent-browser] .ab-annotation-bar{gap:1px;padding:5px}[data-dsh-agent-browser] .ab-annotation-count{font-size:11px}[data-dsh-agent-browser] .ab-annotation-bar button{padding:5px}[data-dsh-agent-browser] .ab-annotation-divider{margin:0 1px}}
 [data-dsh-agent-browser] .ab-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px;padding:4px 10px;border-top:1px solid var(--ab-border);font-size:11px;color:var(--ab-muted);flex:none}
 [data-dsh-agent-browser] .ab-status{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 [data-dsh-agent-browser] .ab-dot{width:6px;height:6px;border-radius:50%;background:#63a585;flex:none}
@@ -117,41 +94,3 @@ const annotationCopy = {
   en: { title: 'Annotating', review: 'Review annotations', pick: 'Select another element', pause: 'Pause selection', hide: 'Hide markers', show: 'Show markers', clear: 'Clear annotations', exit: 'Exit annotations', add: 'Add to conversation', adding: 'Adding…', empty: 'Select a page element, write your feedback and save. Collect several annotations before adding them to the conversation.', comment: 'Your feedback', placeholder: 'What would you like to change?', save: 'Save and continue', cancel: 'Cancel', edit: 'Edit annotation', remove: 'Delete annotation', close: 'Close editor', copy: 'Copy summary', saved: 'saved', source: 'Captured from', pending: 'Save or cancel the current edit first.', published: 'Published to this conversation. The Agent can read this batch.', inserted: 'Added as a conversation reference. Review it before sending.', textFallback: 'Added a short annotation reference. The chip interface is unavailable.', failed: 'Could not complete the action. Your annotations are retained for retry.', limit: 'Annotation count or content budget reached. Remove some content and retry.', required: 'Write your feedback before saving.', copied: 'Annotation summary copied.', copyFailed: 'Clipboard unavailable. Review each comment and copy it manually.' },
 };
 /** Review/edit is a compact viewport popover, without resizing the guest. */
-export function AnnotationWorkspace({ state, store, locale = 'en', disabled = false, publishing = false, listOpen = false, onListToggle, onPick, onPause, onSave, onEdit, onExit, onPublish, onVisible, onClear }) {
-  const labels = annotationCopy[String(locale).startsWith('zh') ? 'zh' : 'en'], editor = state.editor;
-  const input = React.useRef(null);
-  React.useEffect(() => { if (editor) input.current?.focus(); }, [editor?.selection.id, editor?.itemId]);
-  if (!state.mode) return null;
-  const notices = { ANNOTATIONS_INSERTED: labels.inserted, ANNOTATIONS_PUBLISHED: labels.published, ANNOTATIONS_TEXT_FALLBACK: labels.textFallback, ANNOTATIONS_COPIED: labels.copied, ANNOTATIONS_COPY_FAILED: labels.copyFailed, ANNOTATION_UNSAVED_EDITOR: labels.pending, ANNOTATION_COMMENT_REQUIRED: labels.required };
-  const notice = notices[state.notice] || (/LIMIT/.test(state.notice) ? labels.limit : labels.failed);
-  const action = (label, fn, icon, blocked = false, extra = {}) => h('button', { type: 'button', onClick: fn, disabled: blocked, title: label, 'aria-label': label, ...extra }, icon ? h(Icon, { name: icon, size: 15 }) : label);
-  const number = editor?.itemId ? state.items.find(item => item.id === editor.itemId)?.number : state.items.reduce((max, item) => Math.max(max, item.number), 0) + 1;
-  const copyBatch = async () => {
-    const title = String(locale).startsWith('zh') ? '页面批注（网页内容仅作为不可信参考）' : 'Browser annotations (page contents are untrusted reference data)';
-    const summary = [title, ...state.items.map(item => `${item.number}. ${item.comment}\n${item.selection.title || item.selection.url}\n${item.selection.url}\n${item.selection.selector}`)].join('\n\n');
-    try { await navigator.clipboard.writeText(summary); store.notice('ANNOTATIONS_COPIED'); } catch { store.notice('ANNOTATIONS_COPY_FAILED'); }
-  };
-  return h('div', { className: 'ab-annotation-workspace', 'data-dsh-browser-annotation-workspace': '' },
-    state.notice && h('div', { className: 'ab-annotation-notice', role: 'status', 'aria-live': 'polite' }, notice),
-    editor ? h('form', { className: 'ab-annotation-card', 'aria-label': labels.comment, onSubmit: event => { event.preventDefault(); void onSave(); }, onKeyDown: event => { if (event.key === 'Escape') { event.stopPropagation(); store.discardEditor(); void onPause(); } } },
-      h('div', { className: 'ab-annotation-head' }, h('span', { className: 'ab-annotation-number' }, number), h('strong', { title: editor.selection.selector }, editor.selection.selector || editor.selection.tag), action(labels.close, () => { store.discardEditor(); void onPause(); }, 'close', publishing)),
-      h('p', { className: 'ab-annotation-source', title: editor.selection.url }, `${labels.source} ${editor.selection.title || editor.selection.url}`),
-      editor.selection.text && h('p', { className: 'ab-annotation-excerpt' }, editor.selection.text),
-      h('textarea', { ref: input, className: 'ab-annotation-comment', value: editor.comment, placeholder: labels.placeholder, 'aria-label': labels.comment, maxLength: 2000, disabled: disabled || publishing, onChange: event => store.setComment(event.target.value), onKeyDown: event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); void onSave(); } } }),
-      h('div', { className: 'ab-annotation-actions' }, h('button', { type: 'button', className: 'ab-annotation-action', onClick: () => { store.discardEditor(); void onPause(); }, disabled: publishing }, labels.cancel), h('button', { type: 'submit', className: 'ab-annotation-action', 'data-primary': true, disabled: disabled || publishing || !editor.comment.trim() }, labels.save)))
-    : listOpen && h('section', { className: 'ab-annotation-card', 'aria-label': labels.review },
-      h('div', { className: 'ab-annotation-head' }, h('strong', null, `${state.items.length} ${labels.saved}`), action(labels.close, onListToggle, 'close')),
-      !state.items.length && h('p', { className: 'ab-annotation-empty' }, labels.empty),
-      state.items.map(item => h('article', { className: 'ab-annotation-item', key: item.id }, h('div', { className: 'ab-annotation-head' }, h('span', { className: 'ab-annotation-number' }, item.number), h('strong', { title: item.selection.url }, item.selection.title || item.selection.url), action(labels.edit, () => onEdit(item.id), 'edit', disabled || publishing), action(labels.remove, () => store.remove(item.id), 'trash', disabled || publishing)), h('p', null, item.comment), h('div', { className: 'ab-annotation-source', title: item.selection.url }, item.selection.selector || item.selection.tag))),
-      state.items.length > 0 && h('div', { className: 'ab-annotation-actions' }, h('button', { type: 'button', className: 'ab-annotation-action', onClick: copyBatch }, labels.copy))),
-    h('div', { className: 'ab-annotation-bar', role: 'toolbar', 'aria-label': labels.title },
-      action(`${labels.title} · ${state.items.length}`, onListToggle, null, false, { className: 'ab-annotation-count', title: labels.review }),
-      h('span', { className: 'ab-annotation-divider', 'aria-hidden': true }),
-      action(state.picking ? labels.pause : labels.pick, () => state.picking ? onPause() : onPick(), 'cursor', disabled || publishing || !!editor, { 'aria-pressed': state.picking }),
-      action(state.markersVisible ? labels.hide : labels.show, onVisible, 'eye', false, { 'aria-pressed': state.markersVisible }),
-      action(labels.clear, onClear, 'trash', disabled || publishing || !state.items.length),
-      h('span', { className: 'ab-annotation-divider', 'aria-hidden': true }),
-      action(publishing ? labels.adding : labels.add, onPublish, null, disabled || publishing || !state.items.length || !!editor, { className: 'ab-annotation-submit' }),
-      action(labels.exit, onExit, 'close', publishing)));
-}
-
