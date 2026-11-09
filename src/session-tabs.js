@@ -121,7 +121,7 @@ export class SessionTabs {
       const value = await abortable(entry.runner.run({ ...command, signal }), signal);
       signal.throwIfAborted();
       if (this.activeTabId !== tabId || !this.entries.has(tabId)) throw new BrowserError('TAB_CHANGED');
-      return { ...value, tabId, ...(command.operation === 'status' ? { connected: true, tabCount: this.entries.size } : {}) };
+      return { ...value, tabId };
     } finally {
       clearTimeout(timer);
       if (this.request === request) { this.request = null; this.onActivity({ busy: false, tabId: this.activeTabId }); }

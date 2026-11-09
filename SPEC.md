@@ -1,4 +1,4 @@
-# dsh-browser 首版行为规格
+# PowerDSH Browser 首版行为规格
 
 ## 产品目标
 
@@ -32,6 +32,7 @@
 
 ## 界面与生命周期
 
+- 本项目与安装包名为 `power-dsh-browser`，系列品牌为 PowerDSH；面板和设置入口显示名统一为 **PowerDSH Browser**，中英文一致。
 - 利用宿主 sidebar slot、React、主题 token 和 locale；中英文文案。样式只作用于插件自己。
 - 0.2 版在每会话一个浏览器面板内支持最多 12 个独立页面标签。标签各有 guest lease、历史、标题与 runner；切换保留页面并使旧观察失效。`browser_tabs` 提供 list/new/select/close，快照携带 tabId，动作必须匹配当前标签。
 - 面板展示当前所属会话；有请求运行时可见，提供停止控制按钮。

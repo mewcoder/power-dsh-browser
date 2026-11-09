@@ -1,6 +1,6 @@
 # 实现原理（1.0.0）
 
-本页说明 dsh-x-browser 为什么这样实现、各层如何协作、边界在哪里。
+本页说明 PowerDSH Browser（`power-dsh-browser`）为什么这样实现、各层如何协作、边界在哪里。架构说明保留 1.0.0 的设计背景；宿主桥的旧协议字符串是兼容标识，不能按展示品牌直接改写。
 
 ## 一、整体架构
 
@@ -17,7 +17,7 @@ Client（浏览器面板）：SessionTabs → PageRunner → ElectronPage
 DSH 主进程：DesktopBrowserGuests（lease / partition / guest 准入）
    ▲
    │  宿主桥（安装进 main）：IPC handler + webContents.debugger
-   └── dsh-x-browser:cap:v1 / dsh-browser:network:v1
+   └── dshx-browser:cap:v1 / dsh-browser:network:v1
 ```
 
 关键点：**Agent 不直接碰 webview**。所有操作经 Host→Client→自己的 guest；网络/进阶能力经宿主桥在 main 进程用 CDP 执行，且只认**本插件自己 lease 的 guest**。
@@ -50,9 +50,11 @@ DSH 公开给插件的只有 webview 的 `executeJavaScript / capturePage / send
 | 通道 | 用途 |
 | --- | --- |
 | `dsh-browser:network:v1` | 旧网络工具，只允许 status/start/list/read/body/frames/clear/stop |
-| `dsh-x-browser:cap:v1` | 新能力：网络 + screenshot/emulate/cookies/accessibility/input/downloads/upload |
+| `dshx-browser:cap:v1` | 新能力：网络 + screenshot/emulate/cookies/accessibility/input/downloads/upload |
 
 两通道共用**同一个 handler 逻辑、同一个 network service、同一套 lease/sender 校验**。legacy 通道拒绝非网络操作。
+
+`dshx-browser:cap:v1` 与 `dsh-browser:network:v1` 是更名前已使用、为兼容已安装桥而保留的协议名称，不是 PowerDSH Browser 的当前包名。历史变更记录中的 `dsh-x-browser:cap:v1` 保持原文；此处按当前代码核对为 `dshx-browser:cap:v1`。ASAR 内的 `lib/dsh-browser-bridge/` 路径及旧 manifest 标识同样按兼容要求保留，不能靠品牌替换改变其字节校验与恢复关系。
 
 ### 3.2 认证
 每次请求：

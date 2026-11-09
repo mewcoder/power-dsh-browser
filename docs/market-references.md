@@ -15,7 +15,7 @@
 
 ## 与本插件的对比
 
-| 维度 | Nono-neko | wqty123 | LWJ007 | dshx-browser 1.0.0 |
+| 维度 | Nono-neko | wqty123 | LWJ007 | PowerDSH Browser 1.0.0 |
 | --- | --- | --- | --- | --- |
 | 承载 | iframe | webview | 外部 Chrome | webview |
 | 多标签 | ✅ | ✅ | ❌ | ✅ |

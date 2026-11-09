@@ -1,14 +1,13 @@
 import { BrowserError, abortable } from './protocol.js';
 
 // Keep in sync with native/desktop-browser-bridge.js BRIDGE_BUILD.
-export const EXPECTED_BRIDGE_BUILD = '2026-11-08.1';
-const ACTIONS = new Set(['capabilities', 'screenshot', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input', 'downloads', 'clearDownloads', 'upload', 'downloadCancel']);
+export const EXPECTED_BRIDGE_BUILD = '2026-11-08.2';
+const ACTIONS = new Set(['capabilities', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input', 'downloads', 'clearDownloads', 'upload', 'downloadCancel']);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const pick = (source, keys) => Object.fromEntries(keys.filter(key => source[key] !== undefined).map(key => [key, source[key]]));
 
 function optionsFor(args) {
   switch (args.action) {
-    case 'screenshot': return pick(args, ['fullPage']);
     case 'emulate': return pick(args, ['width', 'height', 'deviceScaleFactor', 'mobile', 'userAgent', 'timezone', 'media']);
     case 'cookies': return { action: args.cookieAction };
     case 'input': return {
@@ -29,9 +28,9 @@ export class GuestCap {
   available() { return this.bridge?.protocolVersion === 1 && typeof this.bridge.request === 'function'; }
   payload(args) {
     if (!object(args) || !ACTIONS.has(args.action)) throw new BrowserError('INVALID_CAP_ACTION');
-    // CDP Page.captureScreenshot hangs on stock Electron webviews without a paint
-    // lease (a Codex-only native interface), so fail fast instead of timing out.
-    if (args.action === 'screenshot') throw new BrowserError('CAPABILITY_UNSUPPORTED', 'Full-page/CDP screenshot is unavailable on this Electron host; use browser_screenshot for the viewport');
+    // Full-page/CDP screenshot is intentionally not exposed: Page.captureScreenshot
+    // hangs on stock Electron webviews without a paint lease. browser_screenshot
+    // (native capturePage) is the only screenshot path.
     if (args.action === 'cookies' && !['get', 'clear'].includes(args.cookieAction)) throw new BrowserError('INVALID_CAP_OPTIONS');
     if (args.action === 'input' && !['mouse', 'key'].includes(args.inputType)) throw new BrowserError('INVALID_CAP_OPTIONS');
     if (args.action === 'upload' && (typeof args.selector !== 'string' || !Array.isArray(args.files) || !args.files.length)) throw new BrowserError('INVALID_CAP_OPTIONS');

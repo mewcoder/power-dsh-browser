@@ -14,7 +14,7 @@ const executable = process.env.ELECTRON_PATH;
 if (!executable || !path.isAbsolute(executable)) throw Error('Set ELECTRON_PATH to an absolute path to an existing stock Electron executable.');
 await access(executable, constants.X_OK);
 const temporaryParent = await realpath(tmpdir());
-const temporary = await mkdtemp(path.join(temporaryParent, 'dsh-browser-electron-network-'));
+const temporary = await mkdtemp(path.join(temporaryParent, 'power-dsh-browser-electron-network-'));
 const output = path.join(project, 'artifacts', 'electron-network');
 await mkdir(output, { recursive: true });
 const reportFile = path.join(output, 'report.json');
@@ -50,11 +50,11 @@ try {
   const renderer = path.join(temporary, 'renderer.js');
   await writeFile(renderer, bundled.outputFiles[0].contents);
   const appDirectory = path.join(temporary, 'app'); await mkdir(appDirectory);
-  await writeFile(path.join(appDirectory, 'package.json'), JSON.stringify({ name: 'dsh-browser-controlled-electron-network', version: '1.0.0', type: 'module', main: 'main.mjs' }));
+  await writeFile(path.join(appDirectory, 'package.json'), JSON.stringify({ name: 'power-dsh-browser-controlled-electron-network', version: '1.0.0', type: 'module', main: 'main.mjs' }));
   await writeFile(path.join(appDirectory, 'main.mjs'), `import ${JSON.stringify(pathToFileURL(fixtureMain).href)};\n`);
   const configFile = path.join(temporary, 'config.json');
   const childReport = path.join(temporary, 'app-report.json');
-  await writeFile(configFile, JSON.stringify({ kind: 'dsh-browser-electron-network-smoke-v1', renderer, preload, report: childReport,
+  await writeFile(configFile, JSON.stringify({ kind: 'power-dsh-browser-electron-network-smoke-v1', renderer, preload, report: childReport,
     userData: path.join(temporary, 'user-data'), sessionData: path.join(temporary, 'session-data') }));
   const sourceFiles = ['native/desktop-browser-bridge.js', 'native/preload-network.cjs', 'native/preload-cap.cjs', 'native/lease-network-service.js', 'native/network-recorder.js',
     'src/network-client.js', 'src/protocol.js', 'test/fixtures/electron-network-app.mjs', 'test/fixtures/electron-network-preload.cjs', 'test/fixtures/electron-network-renderer.js'];
@@ -86,7 +86,7 @@ try {
   // Verify the exact absolute temp target before recursive deletion. Never remove
   // a user-supplied path, a profile outside this run, or a running process's data.
   const resolved = path.resolve(temporary);
-  if (report.cleanup.childExited && path.dirname(resolved) === temporaryParent && path.basename(resolved).startsWith('dsh-browser-electron-network-')) {
+  if (report.cleanup.childExited && path.dirname(resolved) === temporaryParent && path.basename(resolved).startsWith('power-dsh-browser-electron-network-')) {
     await rm(resolved, { recursive: true, force: true }); report.cleanup.temporaryAppRemoved = true;
   } else report.cleanup.temporaryAppRemoved = false;
   if (report.failures.length) report.diagnostics = { stdout: scrub(stdout), stderr: scrub(stderr) };

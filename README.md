@@ -1,76 +1,117 @@
-# dsh-x-browser · DSHX
+# PowerDSH Browser
 
-DSHX 系列的 DSH Desktop 独立 Cordis Bundle：用户与 Agent 在聊天旁共享插件自己的 Electron webview。**1.1.0** 增加 owned-guest Network 桥接和 `browser_network`：读取真实请求/响应头、POST 数据、完成后的响应正文、重定向与失败状态。多标签、导航、DOM/样式、控制台与截图功能继续保留。
+**让你和 Agent，在 DSH 里一起浏览网页。**
 
-版本 **1.1.0**（能力对齐 ZCode / Qoder 级别）。目标为 **DSH 0.2.2-rc.1 / macOS Desktop**。基础插件使用 DSH 公开 webview 接口；Network 另外需要用户已授权的宿主桥接补丁。1.1.0 的代码检查、受控测试与宿主实际加载/真实页面验收分别记录，不把构建成功或假 debugger 测试当作已安装。
+[![CI](https://github.com/mewcoder/power-dsh-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/mewcoder/power-dsh-browser/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-1.1.1-blue)](CHANGELOG.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-## 构建与安装
+PowerDSH Browser 是 **PowerDSH** 系列的 DSH Desktop 浏览器插件。网页直接运行在聊天旁的浏览器面板里：你可以手动浏览，Agent 也能在当前会话中读取页面、点击、填写表单和截图。查看网页与操作结果，都在同一个可见的页面里完成。
 
-需要 Node.js 22 或以上版本。在项目目录运行：
+与 `power-dsh` 沿用同一系列品牌，浏览器插件独立安装、独立维护，包名为 `power-dsh-browser`。
+
+## 可以做什么
+
+- **共享浏览**：每个会话一个浏览器面板，最多 12 个标签页，支持地址输入、搜索、前进、后退和刷新。
+- **操作网页**：Agent 可以打开页面、点击按钮、填写表单、提交和滚动；你随时可以继续手动操作。
+- **分析页面**：读取页面文字、可操作元素、DOM 结构、元素位置、计算样式、图片来源和控制台消息。
+- **查看截图**：获取当前视口的真实截图，让支持图片输入的模型看到页面效果。
+- **排查网络**：捕获真实请求，查看请求与响应头、POST 数据、响应正文、重定向和失败状态。
+- **按需扩展**：通过 Desktop 桥提供设备模拟、Cookie、无障碍树、输入及下载管理等进阶能力。
+
+普通浏览、页面分析、交互和视口截图使用 DSH 的公开接口。**网络与进阶能力需要额外安装 Desktop 桥**，安装方式见下文；能力可用性及限制见 [功能清单](docs/features.md)。
+
+## 安装
+
+当前支持 **macOS DSH Desktop 0.2.2-rc.1**，构建需要 **Node.js 22 或更新版本**。
 
 ```sh
+git clone https://github.com/mewcoder/power-dsh-browser.git
+cd power-dsh-browser
 npm ci --ignore-scripts
 npm run check
-npm pack --dry-run
 ```
 
-通过 **DSH 设置 → 插件 → 安装第三方插件**安装本项目本地目录或本地 npm 包；更新也由原生管理器维护，不手写 profile。运行宿主需已有 tools、typert、Client remote、locale、sidebarRightTabs、slots 和 workspaces 服务。模型图片截图还需要附件存储和支持图片输入的模型。
+在 **DSH 设置 → 插件 → 安装第三方插件** 中安装本地项目目录。也可以运行 `npm pack` 生成安装包，再通过原生插件管理器安装或更新。
 
-Network 桥的安装流程独立：
+模型查看截图还需要宿主附件存储，以及支持图片输入的模型。浏览器面板依赖 DSH Desktop 的 Electron webview；普通 Web GUI 的能力范围见 [规格说明](SPEC.md)。
+
+### 安装 Desktop 桥
+
+需要 Network 或进阶能力时，先检查当前宿主是否受支持，再准备补丁：
 
 ```sh
-npm run bridge:status   # 只读诊断
-npm run bridge          # 一键安装/修复（自动等待关闭并重开）
-npm run bridge:restore  # 还原原始归档
+node scripts/desktop-bridge.mjs --check
+node scripts/desktop-bridge.mjs --prepare
 ```
 
-预检和准备不会修改已安装应用。准备产物包含补丁、原归档备份和 manifest。**必须完全退出 DSH 后，才能按 manifest 执行 apply；安装器不会代替用户关闭应用。** 它会核对准确版本、源文件散列、Electron 加载策略、进程和原始备份，再原子替换归档；restore 只恢复该 manifest 对应的原始字节。
+准备阶段会生成原始归档备份、补丁和 manifest，不修改已安装应用。核对输出后，**完全退出 DSH**，再用生成的 manifest 安装：
 
-完整命令和边界见 [宿主桥安装说明](docs/desktop-bridge.md)。普通基础浏览无需此补丁；未加载桥时 Network 明确报告不可用，不切换外部浏览器或伪造流量。
+```sh
+node scripts/desktop-bridge.mjs --apply --manifest /absolute/path/to/manifest.json
+```
 
-## 使用
+安装器只接受核对过的精确版本、构建与文件散列；拒绝在 DSH 运行时替换归档。保留 manifest 和原始备份，可按同一记录恢复。完整预检、安装、恢复流程见 [Desktop 桥说明](docs/desktop-bridge.md)。
 
-1. 使用浏览器工具时，**Agent 浏览器 / Agent Browser** 面板会按需自动打开（应用启动时不弹出；关闭后保持关闭，直到下次真正需要）。也可从会话右侧栏手动打开。每个会话保留一个可操作面板，面板内最多 12 个独立标签。多个窗口或面板同时提供同一会话时返回 `AMBIGUOUS_PANEL`。
-2. 地址栏支持网址、HTTP(S) 与搜索词；本地 localhost 默认 HTTP。新建、切换和关闭标签保留独立页面和历史。
-3. Agent 先通过 `browser_status` / `browser_tabs` 取得活动 tabId，再使用对应工具。所有会话身份来自真实 `exec.agent.session.id`，工具不接受自行指定的会话 ID。
-4. 页面快照包含 tabId、generation、documentId、snapshotId 和元素引用。动作会消耗快照；导航或页面变化后必须重新观察，不猜坐标。
-5. 捕获网络时先在当前标签调用 `browser_network` 的 start，再导航或触发请求。用 list 找到 requestId/hop，read 查看头和状态，body 分页读取正文。完整用法见 [Network 工具](docs/network.md)。
-6. **停止 Agent** 会取消当前工作并停止所有 owned tab 的网络捕获；正常切换标签或导航保留录制。关闭标签、面板、Client 断连或 Host 卸载会释放相应资源。
+## 开始使用
 
-| 工具 | 功能 |
+1. 在会话右侧栏打开 **PowerDSH Browser**，或让 Agent 打开一个网址。默认会在需要时自动打开面板。
+2. 手动浏览，或直接向 Agent 描述任务，例如“读取这个页面的主要内容”“填写表单后截图”或“检查刚才请求的响应正文”。
+3. 需要中止时停止 Agent 控制。取消会阻止后续动作，已经发生的网页操作仍然保留。
+
+偏好统一放在 **DSH 设置 → PowerDSH Browser**：
+
+| 设置 | 默认 | 作用 |
+| --- | --- | --- |
+| 需要时自动打开面板 | 开启 | Agent 需要浏览网页时显示浏览器面板 |
+| 替代 DSH 内置浏览器 | 关闭 | 使用本插件承接侧栏浏览器和聊天中的网页链接 |
+
+## Agent 工具
+
+| 工具 | 用途 |
 | --- | --- |
-| browser_status / browser_tabs | 当前连接和活动标签；标签列表、新建、切换、关闭 |
-| browser_navigate | 打开、前进、后退、刷新 |
-| browser_snapshot / browser_inspect | 有界页面语义、元素引用、DOM、矩形、样式与图片来源 |
-| browser_console | 公开 native console-message 事件的有界记录 |
-| browser_network | owned guest 的真实网络捕获、头/状态和正文读取 |
-| browser_cap | 进阶能力：capabilities / emulate·clearEmulation / cookies / accessibility / CDP input（截图见下） |
-| browser_act / browser_screenshot | 原生输入动作和模型可见 PNG（视口截图） |
-| browser_stop | 撤销当前控制并请求停止网络捕获 |
+| `browser_status` / `browser_tabs` | 读取状态，创建、切换和关闭标签页 |
+| `browser_navigate` | 打开网址、前进、后退和刷新 |
+| `browser_snapshot` / `browser_inspect` | 读取页面文字、元素引用、DOM 与计算样式 |
+| `browser_act` | 点击、填写、回车提交和滚动 |
+| `browser_screenshot` / `browser_console` | 获取视口截图与控制台消息 |
+| `browser_network` | 捕获真实网络请求，读取头、请求体和响应正文 |
+| `browser_cap` | 查询及使用 Desktop 进阶能力 |
+| `browser_stop` | 停止当前会话的 Agent 浏览器控制 |
 
+页面观察携带标签、文档和快照标识；导航或切换标签后需要重新观察，旧元素引用会失效。工具根据真实 Agent 执行上下文绑定会话。详细调用方式见 [Network 工具](docs/network.md) 与 [进阶能力](docs/capabilities.md)。
 
-## 设置
-面板工具栏的齿轮可打开轻量设置（本地持久化）：
-- **需要时自动打开面板**（默认开）
-- **新标签默认主页**
-- **最大标签数**
+## 使用边界
 
-网络抓包预算（请求数/单正文/总正文）仍在调用 `browser_network` 时按需指定。偏好存于本机 `localStorage`，后续可平滑迁到 DSH 设置页。
+- 网页内容作为不可信数据处理；操作只针对本插件持有的页面 lease，保留宿主的导航、权限和下载策略。
+- DOM 快照和样式分析限主框架普通 DOM，不穿透 iframe 或 Shadow DOM。工具不提供任意页面脚本或原始 CDP 执行入口。
+- 截图覆盖当前视口；全页和元素截图尚不支持。
+- Network 只记录开始捕获后的真实流量，不拦截、重放或改写请求。子目标和 WebSocket 的覆盖受 Electron 实现限制。
+- 页面存储分区可能共享站点登录状态；会话操作隔离不等于账号隔离。
+- 文件上传等实验能力及未完成的真实 Desktop 验收，单独标注在 [功能清单](docs/features.md) 和 [验证说明](docs/verification.md) 中。
 
-## 边界
+## 开发与验证
 
-- DOM 快照与 inspect 仍限主框架普通 DOM，不穿透 iframe/Shadow DOM，不读取表单实时值或可编辑内容，不暴露任意页面/Node 脚本工具。
-- `browser_cap` 的设备模拟 / Cookie / 无障碍 / CDP 输入已接入；**全页/元素截图（CDP `Page.captureScreenshot`）在标准 Electron webview 上会挂起**（Codex 靠 paint lease 才有），因此 `cap.screenshot` 快速返回“不支持”，截图请用 `browser_screenshot`（视口）。
-- Network 记录真实 CDP 事件，不拦截、重放或另发请求；当前 scope 是 **owned-root-target**，不承诺跨进程 iframe、worker 或 WebSocket 消息内容。捕获前的请求不能回溯。
-- 默认最多 200 个请求 ID、每正文 1 MiB、总正文 8 MiB；上限 500、2 MiB、16 MiB。超限/缓存缺失/分离会给出明确状态；大响应分页，UTF-8 JSON 保持在通道预算内。
-- 保留宿主既有 lease、工作区分区、页面准入、权限和下载策略。分区可能共享站点存储，会话路由隔离不等于账号隔离。桥不提供任意 CDP、Cookie 导入或系统控制 API。
-- 取消不回滚已发生的网页行为。挂起或晚到的捕获启动会清理自身资源，不会接管其他页面或中断其他 debugger。
-- 研究参考和原始应用 bundle 不进入分发包；研究报告留在源码工作区。宿主补丁只针对精确核查过的版本，新版本需要重新适配。
+```sh
+npm run check             # 构建、语法、Bundle/工具合约与受控行为测试
+npm run test:chromium     # 可选：隔离 Chromium 页面测试
+npm run test:ui           # 可选：隔离浏览器中的真实 React 面板测试
+npm pack --dry-run        # 核对分发文件
+```
 
-## 验证与资料
+当前 `npm run check` 通过 **191 项测试**。构建检查、受控集成测试、宿主加载和真实 Desktop 页面验证分别记录，不以其中一层替代另一层。具体环境、结果与未验证项见 [验证说明](docs/verification.md)。
 
-`npm run check` 构建 Host/Client、检查 lazy Client factory、Bundle 和 11 个工具合约，运行页面、协议、网络记录、lease、桥和安装器测试。受控 DOM/假 debugger 测试均有明确边界。
+## 更名与升级
 
-可选 `npm run test:chromium`、`npm run test:ui` 使用隔离测试页面/profile，不是产品运行依赖。真实 Electron 网络集成用 `ELECTRON_PATH=/absolute/path/to/Electron npm run test:electron-network`，只启动隔离测试应用/profile。当前已通过 12 项真实流量、正文和生命周期检查，不能代替更新后的 DSH 实际加载验收。
+项目现统一使用 **PowerDSH Browser / `power-dsh-browser`**。升级通过 DSH 原生插件管理器完成，避免同时保留新旧包的重复注册。
 
-完整功能清单见 [功能清单](docs/features.md)。行为要求见 [SPEC](SPEC.md)，来源及复用边界见 [资料来源](docs/provenance.md)，历史验收见 [验证说明](docs/verification.md)。采用源码参考适配，不宣称净室工程。
+已有本地偏好在首次读取时迁移到新存储键，并保留旧记录。旧 Host 配置仍可读取、且新配置未被用户修改时，通过固定 revision 的原子操作迁移；旧配置不可读时保留新配置。桥接协议、历史 manifest、恢复记录和第三方来源中的旧标识按兼容要求保留。
+
+## 文档与许可
+
+- [功能清单](docs/features.md) · [行为规格](SPEC.md) · [实现原理](docs/architecture.md)
+- [Desktop 桥](docs/desktop-bridge.md) · [Network](docs/network.md) · [进阶能力](docs/capabilities.md)
+- [更新记录](CHANGELOG.md) · [验证说明](docs/verification.md) · [品牌规范](BRAND.md)
+- [来源与适配边界](docs/provenance.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
+
+采用源码参考与适配的开发方式，实际参考、复用和许可范围均有记录。项目采用 [MIT License](LICENSE)，第三方代码与资源遵循各自许可证。

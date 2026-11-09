@@ -76,7 +76,7 @@ function buildPatched() {
 function writeArchive(bytes) {
   const wanted = sha256(bytes);
   fs.mkdirSync(STATE, { recursive: true });
-  const staged = path.join(path.dirname(ARCHIVE), `.app.asar.dsh-x-${Date.now()}.tmp`);
+  const staged = path.join(path.dirname(ARCHIVE), `.app.asar.power-dsh-browser-${Date.now()}.tmp`);
   fs.writeFileSync(staged, bytes, { mode: 0o644 });
   if (sha(staged) !== wanted) { fs.rmSync(staged, { force: true }); throw new Error('Staged archive hash mismatch'); }
   fs.renameSync(staged, ARCHIVE);

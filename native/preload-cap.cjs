@@ -1,12 +1,11 @@
 'use strict';
 
-// Sandbox-safe CJS factory for the DSHX browser capability channel. This file is
+// Sandbox-safe CJS factory for the PowerDSH Browser capability channel. This file is
 // inlined verbatim into the host preload; it must not require any local module.
 const CHANNEL = 'dshx-browser:cap:v1';
 const MAX_JSON_BYTES = 60000;
-const MAX_SCREENSHOT_BYTES = 5400000;
 const OPERATIONS = ['status', 'start', 'list', 'read', 'body', 'frames', 'clear', 'stop',
-  'capabilities', 'screenshot', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input',
+  'capabilities', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input',
   'downloads', 'clearDownloads', 'downloadCancel', 'upload'];
 const ERROR_CODES = new Set([
   'INVALID_NETWORK_REQUEST', 'INVALID_NETWORK_OPTIONS', 'INVALID_NETWORK_QUERY', 'INVALID_BODY_KIND',
@@ -60,7 +59,7 @@ function createDesktopCapBridge(ipcRenderer) {
           return failure(code);
         }
         if (Object.keys(reply).some(key => !['ok', 'value'].includes(key)) || !Object.hasOwn(reply, 'value')) return failure('BRIDGE_UNAVAILABLE');
-        const result = jsonData(reply, request.operation === 'screenshot' ? MAX_SCREENSHOT_BYTES : MAX_JSON_BYTES);
+        const result = jsonData(reply);
         return Object.hasOwn(result, 'value') ? result : failure('BRIDGE_UNAVAILABLE');
       } catch { return failure('NETWORK_RESPONSE_TOO_LARGE'); }
     },

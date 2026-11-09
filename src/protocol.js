@@ -1,8 +1,8 @@
-export const LIMITS = Object.freeze({ timeout: 15000, text: 12000, elements: 120, image: 4_000_000, wire: 5_500_000 });
+export const LIMITS = Object.freeze({ timeout: 15000, image: 4_000_000, wire: 5_500_000 });
 export class BrowserError extends Error {
   constructor(code, message = code) { super(`${code}: ${message}`); this.code = code; }
 }
-export function fail(code, message) { throw new BrowserError(code, message); }
+function fail(code, message) { throw new BrowserError(code, message); }
 // The underlying Electron promise may not support cancellation. Ignore its late
 // settlement while releasing our request immediately; do not dispatch follow-up work.
 export function abortable(promise, signal) {
@@ -72,8 +72,8 @@ export class Broker {
   select(sessionId) {
     this.sweep();
     const panels = [...this.panels.values()].filter(p => p.sessionId === sessionId);
-    if (!panels.length) fail('PANEL_OFFLINE', 'Open the Agent Browser entry in this session');
-    if (panels.length !== 1) fail('AMBIGUOUS_PANEL', 'Close additional Agent Browser panels/windows');
+    if (!panels.length) fail('PANEL_OFFLINE', 'Open the PowerDSH Browser entry in this session');
+    if (panels.length !== 1) fail('AMBIGUOUS_PANEL', 'Close additional PowerDSH Browser panels/windows');
     this.demands.delete(sessionId);
     return panels[0];
   }
@@ -105,16 +105,13 @@ export class Broker {
     if ([...this.pending.values()].some(x => x.panel === p)) fail('BUSY', 'One page request may run at a time');
     return new Promise((resolve, reject) => {
       const requestId = id(), expires = this.now() + this.timeout;
-      const cancel = () => {
+      const abortRequest = error => {
         p.queue = p.queue.filter(c => c.id !== requestId);
         p.queue.push({ kind: 'cancel', id: requestId });
-        finish(new BrowserError('CANCELLED'));
+        finish(error);
       };
-      const timer = setTimeout(() => {
-        p.queue = p.queue.filter(c => c.id !== requestId);
-        p.queue.push({ kind: 'cancel', id: requestId });
-        finish(new BrowserError('TIMEOUT'));
-      }, this.timeout);
+      const cancel = () => abortRequest(new BrowserError('CANCELLED'));
+      const timer = setTimeout(() => abortRequest(new BrowserError('TIMEOUT')), this.timeout);
       const finish = (error, value) => {
         if (!this.pending.delete(requestId)) return;
         clearTimeout(timer); signal?.removeEventListener('abort', cancel);

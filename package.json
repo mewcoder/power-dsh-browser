@@ -1,7 +1,7 @@
 {
-  "name": "dsh-x-browser",
-  "version": "1.1.0",
-  "description": "DSHX · Session-bound shared browser panel and Agent tools for DSH Desktop (ZCode/Qoder-level)",
+  "name": "power-dsh-browser",
+  "version": "1.1.1",
+  "description": "PowerDSH Browser brings shared browsing to DSH Desktop, with Agent controls, DOM inspection, screenshots and network debugging.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -69,10 +69,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mewcoder/dsh-x-browser.git"
+    "url": "git+https://github.com/mewcoder/power-dsh-browser.git"
   },
   "bugs": {
-    "url": "https://github.com/mewcoder/dsh-x-browser/issues"
+    "url": "https://github.com/mewcoder/power-dsh-browser/issues"
   },
-  "homepage": "https://github.com/mewcoder/dsh-x-browser#readme"
+  "homepage": "https://github.com/mewcoder/power-dsh-browser#readme"
 }

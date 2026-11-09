@@ -8,7 +8,7 @@ const network = (() => {
   /* DSH_NETWORK_FACTORY_SOURCE */
   return module.exports.createDesktopNetworkBridge(ipcRenderer);
 })();
-const channel = 'dsh-browser:electron-network-smoke:v1';
+const channel = 'power-dsh-browser:electron-network-smoke:v1';
 contextBridge.exposeInMainWorld('ELECTRON_NETWORK_SMOKE', {
   network,
   environment: { sandboxed: process.sandboxed, contextIsolated: process.contextIsolated },

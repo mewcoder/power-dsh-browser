@@ -1,66 +1,82 @@
 import React from 'react';
+import { GuideArtworkBrowser } from '@deepseek-ai/dsh-client-ui-primitives';
 import { RPC, call } from './rpc.js';
 import { id, abortable } from './protocol.js';
 import { ElectronPage, workspaceIdentity } from './electron-page.js';
 import { SessionTabs } from './session-tabs.js';
 import { Icon, shellCss, addressUrl } from './browser-shell.js';
-import { loadSettings } from './settings.js';
+import { loadSettings, subscribeSettings } from './settings.js';
+import { startHostSettingsMigration } from './settings-migration.js';
 import { usePanelSettings } from './use-panel-settings.js';
-import { MAX_TABS, MIN_TABS } from './constants.js';
+import { MAX_TABS, PLUGIN_ID } from './constants.js';
+import { BrowserSettingsPage } from './settings-page.js';
 import { AgentCursor, ClickMarker } from './agent-cursor.js';
 const noopSubscribe = () => () => {}, noServices = () => null;
 const h = React.createElement;
-const KIND = 'dsh-agent-browser', ID = 'dsh-browser';
+const KIND = PLUGIN_ID, ID = PLUGIN_ID;
 import { dictionaries } from './locale.js';
 export { dictionaries };
 export const inject = ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs', 'remote', 'configForms'];
 export async function apply(ctx) {
-  const namespace = 'dshAgentBrowser', t = ctx.locale.bind(namespace);
+  const namespace = 'powerDshBrowser', t = ctx.locale.bind(namespace);
   ctx.effect(() => ctx.locale.register(namespace, dictionaries));
   const localeSource = { subscribe: listener => ctx.locale.subscribe(listener), getSnapshot: () => ctx.locale.getSnapshot().active };
   await ctx.remote.$mount({ package: ID, descriptors: RPC });
   ctx.inject(['remote.dshBrowser', 'workspaces', 'configForms'], scope => {
-    scope.effect(() => scope.sidebarRightTabs.register({ id: ID, kind: KIND, title: () => t('title'), keepMounted: true, guide: [{ id: 'open', title: () => t('title'), description: () => t('description') }] }));
-    scope.effect(() => scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: ID, locale: namespace, inject: sessionId => ({ sessionId, remote: scope.remote, workspaces: scope.workspaces, localeSource }) }, BrowserPanel)));
-    // Settings → X Browser. Reads/writes the Host settings document through the
+    scope.effect(() => startHostSettingsMigration(scope.configForms));
+    // Which kind the sidebar entry currently uses; read by the auto-open demand.
+    const takeover = { on: undefined };
+    // Sidebar entry: one browser — ours or the Host's built-in. With the takeover
+    // preference on, register the built-in "browser" kind: the extension band
+    // shadows the builtin type (disposing our registration restores it), and
+    // `multiple: false` makes chat links reuse this single panel through
+    // navigation params. Off: the plugin keeps its own kind alongside it.
+    scope.effect(() => {
+      const guide = [{ id: 'open', title: () => t('title'), description: () => t('description') }];
+      const readTakeover = () => {
+        try {
+          const value = scope.configForms?.get(PLUGIN_ID)?.getSnapshot()?.value;
+          if (typeof value?.takeOverBrowser === 'boolean') return value.takeOverBrowser;
+        } catch { /* Host settings unavailable; local value stands. */ }
+        return loadSettings().takeOverBrowser;
+      };
+      let release;
+      const sync = () => {
+        const on = readTakeover();
+        if (on === takeover.on) return;
+        takeover.on = on;
+        release?.();
+        // A failed registration must not poison the settings stores' notify
+        // chains; the next sync retries from the current preference value.
+        try {
+          release = scope.sidebarRightTabs.register(on
+            // Takeover card reads as the plain native browser: native title copy and
+            // the host UI kit's browser glyph (registry guide shows only the kind in
+            // force, so the builtin card disappears from the "+" menu).
+            ? { id: ID, kind: 'browser', multiple: false, keepMounted: true, title: () => t('browserTitle'), guide: [{ id: 'open', icon: GuideArtworkBrowser, title: () => t('browserTitle'), description: () => t('description') }] }
+            : { id: ID, kind: KIND, keepMounted: true, title: () => t('title'), guide });
+        } catch { release = undefined; takeover.on = undefined; }
+      };
+      sync();
+      // The preference may live in either store: the Host settings document
+      // (authoritative) or localStorage when the Host form never becomes ready.
+      let unsubscribe, unsubscribeLocal;
+      try { unsubscribe = scope.configForms?.get(PLUGIN_ID)?.subscribe?.(sync); } catch { /* form unavailable; local changes still drive sync */ }
+      try { unsubscribeLocal = subscribeSettings(() => sync()); } catch { /* ignore */ }
+      return () => { try { unsubscribe?.(); unsubscribeLocal?.(); } catch { /* ignore */ } release?.(); };
+    });
+    scope.effect(() => scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: ID, locale: namespace, inject: sessionId => ({ sessionId, remote: scope.remote, workspaces: scope.workspaces, localeSource, configForms: scope.configForms }) }, BrowserPanel)));
+    // Settings → PowerDSH Browser. Reads/writes the Host settings document through the
     // shared config form, so preferences follow the account and survive reloads.
     scope.effect(() => {
       if (!scope.configForms) return () => {};
-      const form = scope.configForms.get('dsh-x-browser');
-      // Expose the shared form to the panel component without prop drilling.
-      globalThis.__dshBrowserConfigForms = scope.configForms;
-      const clearGlobal = () => { if (globalThis.__dshBrowserConfigForms === scope.configForms) delete globalThis.__dshBrowserConfigForms; };
-      const SettingsPage = () => {
-        const snapshot = React.useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot);
-        const value = snapshot?.value ?? {};
-        const [draftHome, setDraftHome] = React.useState(value.homeUrl ?? '');
-        const [notice, setNotice] = React.useState('');
-        React.useEffect(() => { setDraftHome(value.homeUrl ?? ''); }, [value.homeUrl]);
-        const save = async (field, next) => {
-          setNotice('');
-          try {
-            await scope.configForms.describe().load();
-            const latest = form.getSnapshot();
-            if (latest.status !== 'ready') throw new Error(t('settingsOutdated'));
-            if (!await form.set(field, next)) throw new Error(t('saveFailed'));
-            setNotice(t('saved'));
-          } catch (error) { setNotice(error?.message || t('saveFailed')); }
-        };
-        const row = { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--dsw-alias-border-l3, #e8eaee)' };
-        const input = { padding: '4px 8px', border: '1px solid var(--dsw-alias-border-l3, #e8eaee)', borderRadius: 6, background: 'var(--dsw-alias-bg-base, #fff)', color: 'inherit', minWidth: 220 };
-        return h('section', { style: { padding: '4px 2px', display: 'grid', gap: 4 } },
-          h('h2', { style: { margin: '0 0 4px', fontSize: 16 } }, t('settingsTitle')),
-          h('p', { style: { margin: '0 0 8px', opacity: .7, fontSize: 13 } }, t('settingsIntro')),
-          h('label', { style: row }, h('input', { type: 'checkbox', checked: value.autoOpen !== false, onChange: event => void save('autoOpen', event.target.checked) }), t('autoOpenLabel')),
-          h('label', { style: row }, h('span', { style: { flex: 1 } }, t('homeUrlLabel')), h('input', { type: 'text', value: draftHome, placeholder: 'https://…', spellCheck: false, style: input, onChange: event => setDraftHome(event.target.value), onBlur: () => void save('homeUrl', draftHome) })),
-          h('label', { style: row }, h('span', { style: { flex: 1 } }, t('maxTabsLabel')), h('input', { type: 'number', min: MIN_TABS, max: MAX_TABS, value: value.maxTabs ?? MAX_TABS, style: { ...input, minWidth: 90, width: 90 }, onChange: event => void save('maxTabs', Number(event.target.value)) })),
-          notice && h('p', { style: { margin: '8px 0 0', fontSize: 13, opacity: .8 } }, notice));
-      };
-      const releaseSection = scope.slots.register({ name: 'settings.section', id: 'dsh-x-browser', order: 60, locale: namespace, label: () => t('settingsTitle') }, SettingsPage);
-      const releaseIcon = scope.slots.register({ name: 'settings.section.icon', id: 'dsh-x-browser' }, ({ size = 16 } = {}) => h(Icon, { name: 'globe', size }));
-      return () => { releaseSection(); releaseIcon(); clearGlobal(); };
+      const form = scope.configForms.get(PLUGIN_ID);
+      const SettingsPage = () => h(BrowserSettingsPage, { form, configForms: scope.configForms, t });
+      const releaseSection = scope.slots.inject('settings.section', () => scope.slots.register({ name: 'settings.section', id: PLUGIN_ID, order: 60, locale: namespace, label: () => t('settingsTitle') }, SettingsPage));
+      const releaseIcon = scope.slots.inject('settings.section.icon', () => scope.slots.register({ name: 'settings.section.icon', id: PLUGIN_ID }, ({ size = 16 } = {}) => h(Icon, { name: 'globe', size })));
+      return () => { releaseSection(); releaseIcon(); };
     });
-    // Open the Agent Browser panel only when a browser tool actually needs it: the
+    // Open the PowerDSH Browser panel only when a browser tool actually needs it: the
     // Host records a short-lived demand, this loaded Client notices it and opens
     // the tab. Closing the panel normally keeps it closed until the next need.
     // `remote.dshBrowser` is only callable inside this injection scope.
@@ -74,8 +90,8 @@ export async function apply(ctx) {
             if (loadSettings().autoOpen) {
               const result = await scope.remote.dshBrowser.openRequested();
               if (result?.ok && result.value === true) {
-                try { ctx.sidebarRight.openTab(KIND); }
-                catch { try { ctx.sidebarRight.toggleExpanded?.(); ctx.sidebarRight.openTab(KIND); } catch { /* surface not ready; retry */ } }
+                try { ctx.sidebarRight.openTab(takeover.on ? 'browser' : KIND); }
+                catch { try { ctx.sidebarRight.toggleExpanded?.(); ctx.sidebarRight.openTab(takeover.on ? 'browser' : KIND); } catch { /* surface not ready; retry */ } }
               }
             }
           } catch { /* Host not ready; retry */ }
@@ -88,21 +104,35 @@ export async function apply(ctx) {
     });
   });
 }
-export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, localeSource }) {
+export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, localeSource, configForms }) {
   const { tab } = useTabInfo();
   const locale = React.useSyncExternalStore(localeSource?.subscribe ?? noopSubscribe, localeSource?.getSnapshot ?? (() => 'en'), () => 'en');
   const container = React.useRef(null), controls = React.useRef(null), address = React.useRef(null);
   const [view, setView] = React.useState({ activeTabId: null, tabs: [] });
-  const { settings, open: settingsOpen, setOpen: setSettingsOpen, update: updateSettings } = usePanelSettings();
+  const { settings } = usePanelSettings(configForms);
   const [agentPoint, setAgentPoint] = React.useState(null), [cursorShown, setCursorShown] = React.useState(false);
-  const [homeDraft, setHomeDraft] = React.useState(() => settings.homeUrl);
-  const settingsLabels = String(locale).startsWith('zh')
-    ? { settings: '设置', autoOpen: '需要时自动打开面板', homeUrl: '新标签默认主页', maxTabs: '最大标签数', note: '网络抓包上限在调用工具时按需指定。' }
-    : { settings: 'Settings', autoOpen: 'Open panel when needed', homeUrl: 'New-tab home URL', maxTabs: 'Max tabs', note: 'Network capture limits are set per tool call.' };
-  const [draft, setDraft] = React.useState(''), [search, setSearch] = React.useState('');
+  const [draft, setDraft] = React.useState('');
   const [activity, setActivity] = React.useState({ busy: false }), [connection, setConnection] = React.useState('starting'), [error, setError] = React.useState(''), [details, setDetails] = React.useState(false), [marker, setMarker] = React.useState(null);
   const active = view.tabs.find(entry => entry.tabId === view.activeTabId);
   React.useEffect(() => { setDraft(active?.url || ''); setError(''); setMarker(null); }, [active?.tabId, active?.url]);
+  // Takeover mode: chat links arrive as sidebar-tab navigation params and reuse
+  // this one panel. The mount-time URL opens with the initial tab; later values
+  // open a further internal tab (falling back to navigating when tabs are full).
+  const incomingUrl = typeof tab?.navigation?.params?.url === 'string' ? tab.navigation.params.url : '';
+  const seenIncoming = React.useRef(incomingUrl);
+  React.useEffect(() => {
+    if (!incomingUrl || seenIncoming.current === incomingUrl) return;
+    seenIncoming.current = incomingUrl;
+    const c = controls.current; if (!c) return;
+    c.cancel();
+    void (async () => {
+      try { await c.manager.newTab(addressUrl(incomingUrl)); }
+      catch (error) {
+        if (!String(error?.message || '').includes('TAB_LIMIT')) return;
+        try { await c.manager.navigate('open', addressUrl(incomingUrl)); } catch { /* surfaced in the alert row */ }
+      }
+    })();
+  }, [incomingUrl]);
   React.useEffect(() => {
     const carrier = globalThis.dshDesktop, bridge = carrier?.protocolVersion === 1 ? carrier.browser : undefined;
     if (!bridge) { setConnection('unavailable'); return; }
@@ -130,18 +160,15 @@ export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, loc
       }
     };
     const run = async command => {
-      const passive = ['status', 'inspect', 'console', 'network', 'cap'].includes(command.operation) || command.operation === 'tabs' && command.args.action === 'list';
       const control = new AbortController(); requests.set(command.id, control);
       try {
-        if (!passive) {
-        }
         control.signal.throwIfAborted();
         if (closed || !admitting || command.epoch !== epoch || command.expires <= Date.now()) return;
         const value = await manager.run({ ...command, signal: control.signal });
         if (!closed && panelKey && command.epoch === epoch) await call(remote, 'reply', panelKey, command.id, command.epoch, { ok: true, value });
       } catch (error) {
         if (!closed && panelKey && command.epoch === epoch) await call(remote, 'reply', panelKey, command.id, command.epoch, { ok: false, error: String(error.message).slice(0, 1000) }).catch(() => {});
-      } finally { if (requests.get(command.id) === control) requests.delete(command.id); if (!passive && !closed) setMarkerRevision(value => value + 1); }
+      } finally { if (requests.get(command.id) === control) requests.delete(command.id); }
     };
     const poll = async () => {
       if (closed || !panelKey) return;
@@ -179,7 +206,9 @@ export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, loc
           },
           onChange: next => { if (!closed) setView(next); }, onActivity: next => { if (!closed) setActivity(next); },
         });
-        await manager.newTab(prefs.homeUrl || undefined); life.signal.throwIfAborted(); await connect();
+        // Expose the panel's imperative controls to the toolbar handlers above.
+        controls.current = { manager, stop, connect, cancel: cancelPending };
+        await manager.newTab(incomingUrl || prefs.homeUrl || undefined); life.signal.throwIfAborted(); await connect();
       } catch (error) { if (!closed) { setConnection('offline'); setError(error.message); } }
     };
     void initialize();
@@ -200,7 +229,7 @@ export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, loc
   const iconButton = (key, icon, action, disabled = false, extra = {}) => h('button', { type: 'button', className: 'ab-icon', onClick: action, disabled, title: t(key), 'aria-label': t(key), ...extra }, h(Icon, { name: icon }));
   const tabName = entry => entry.title || (entry.url ? (() => { try { return new URL(entry.url).hostname; } catch { return entry.url; } })() : t('pageTitle'));
   const blank = !active?.url;
-  return h('section', { 'data-dsh-agent-browser': '', 'aria-label': t('title') },
+  return h('section', { 'data-power-dsh-browser': '', 'aria-label': t('title') },
     h('style', null, shellCss),
     h('div', { className: 'ab-tabs' },
       h('div', { className: 'ab-tabscroll', role: 'tablist', 'aria-label': t('title') }, view.tabs.map(entry => h('div', { className: 'ab-tab', key: entry.tabId, 'data-active': String(entry.tabId === view.activeTabId) },
@@ -215,20 +244,14 @@ export function BrowserPanel({ sessionId, remote, workspaces, useTabInfo, t, loc
       h('label', { className: 'ab-address' }, h(Icon, { name: active?.url?.startsWith('https:') ? 'lock' : 'globe', size: 13 }),
         h('input', { ref: address, value: draft, placeholder: t('address'), 'aria-label': t('address'), spellCheck: false, onFocus: event => event.currentTarget.select(), onChange: event => setDraft(event.target.value), onKeyDown: event => { if (event.key === 'Escape') { setDraft(active?.url || ''); event.currentTarget.blur(); } } }),
         h('button', { type: 'submit', className: 'ab-icon ab-go', title: t('go'), 'aria-label': t('go') }, h(Icon, { name: 'arrow', size: 14 }))),
-      iconButton('settings', 'gear', () => setSettingsOpen(open => !open), false, { 'aria-pressed': settingsOpen }),
+      iconButton('openExternal', 'external', () => { if (active?.url) window.open(active.url, '_blank', 'noopener,noreferrer'); }, !active?.url),
       activity.busy && h('div', { className: 'ab-agent-badge', 'aria-live': 'polite' }, String(locale).startsWith('zh') ? 'Agent 操作中' : 'Agent controlling'),
       active?.loading && h('div', { className: 'ab-progress', 'aria-hidden': true })),
-    settingsOpen && h('div', { className: 'ab-settings', role: 'group', 'aria-label': settingsLabels.settings, style: { display: 'grid', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--ab-border)', background: 'var(--ab-layer)' } },
-      h('label', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, h('input', { type: 'checkbox', checked: settings.autoOpen, onChange: event => updateSettings({ autoOpen: event.target.checked }) }), settingsLabels.autoOpen),
-      h('label', { style: { display: 'grid', gap: 4 } }, settingsLabels.homeUrl, h('input', { type: 'text', value: homeDraft, placeholder: 'https://…', spellCheck: false, onChange: event => setHomeDraft(event.target.value), onBlur: () => { const next = updateSettings({ homeUrl: homeDraft }); setHomeDraft(next.homeUrl); }, style: { padding: '4px 6px', border: '1px solid var(--ab-border)', borderRadius: 6, background: 'var(--ab-bg)', color: 'var(--ab-text)' } })),
-      h('label', { style: { display: 'grid', gap: 4 } }, settingsLabels.maxTabs, h('input', { type: 'number', min: MIN_TABS, max: MAX_TABS, value: settings.maxTabs, onChange: event => updateSettings({ maxTabs: Number(event.target.value) }), style: { width: 90, padding: '4px 6px', border: '1px solid var(--ab-border)', borderRadius: 6, background: 'var(--ab-bg)', color: 'var(--ab-text)' } })),
-      h('span', { style: { color: 'var(--ab-muted)', fontSize: 12 } }, settingsLabels.note)),
     (error || active?.error) && h('div', { className: 'ab-error', role: 'alert' }, h(Icon, { name: 'info', size: 15 }), h('span', null, error || active.error), iconButton('dismiss', 'close', () => { setError(''); controls.current?.manager.current().page.emit({ error: '' }); })),
     h('div', { className: 'ab-viewport' },
       h('div', { ref: container, className: 'ab-pages' }),
       blank && h('div', { className: 'ab-start' }, h('div', { className: 'ab-start-inner' },
-        h('div', { className: 'ab-start-mark' }, h(Icon, { name: 'globe', size: 32 })), h('h2', null, t('startTitle')), h('p', null, t('startDescription')),
-        h('form', { className: 'ab-start-search', onSubmit: event => { event.preventDefault(); void navigate('open', search); } }, h(Icon, { name: 'search', size: 18 }), h('input', { value: search, placeholder: t('address'), 'aria-label': t('address'), spellCheck: false, onChange: event => setSearch(event.target.value) }), h('button', { type: 'submit', className: 'ab-icon', title: t('go'), 'aria-label': t('go') }, h(Icon, { name: 'arrow' }))),
+        h('p', { className: 'ab-start-hint' }, t('startHint')),
         h('nav', { className: 'ab-shortcuts', 'aria-label': t('shortcuts') }, [['DSH', 'D', 'https://github.com/deepseek-ai/deepseek-harness'], ['MDN', 'M', 'https://developer.mozilla.org/'], ['Wikipedia', 'W', 'https://www.wikipedia.org/']].map(([label, letter, url]) => h('button', { type: 'button', key: label, className: 'ab-shortcut', onClick: () => navigate('open', url) }, h('b', null, letter), label))))),
       h(AgentCursor, { point: agentPoint, visible: cursorShown || activity.busy || (marker && marker.tabId === view.activeTabId) }),
       h(ClickMarker, { marker: marker && marker.tabId === view.activeTabId ? marker : null })),

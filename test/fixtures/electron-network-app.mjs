@@ -10,17 +10,17 @@ import { installDesktopBrowserBridge } from '../../native/desktop-browser-bridge
 const configArgument = process.argv.find(value => value.startsWith('--fixture-config='));
 if (!configArgument) throw Error('Missing isolated fixture configuration');
 const config = JSON.parse(await readFile(configArgument.slice('--fixture-config='.length), 'utf8'));
-assert.equal(config.kind, 'dsh-browser-electron-network-smoke-v1');
+assert.equal(config.kind, 'power-dsh-browser-electron-network-smoke-v1');
 await mkdir(config.userData, { recursive: true });
 await mkdir(config.sessionData, { recursive: true });
-app.setName('DSH Browser Controlled Network Smoke');
+app.setName('PowerDSH Browser Controlled Network Smoke');
 app.setPath('userData', config.userData);
 app.setPath('sessionData', config.sessionData);
 app.commandLine.appendSwitch('disable-background-networking');
 app.commandLine.appendSwitch('disable-sync');
 app.commandLine.appendSwitch('no-first-run');
 
-const fixtureChannel = 'dsh-browser:electron-network-smoke:v1';
+const fixtureChannel = 'power-dsh-browser:electron-network-smoke:v1';
 const postText = '请求正文 · café 😀\n{"ok":true}';
 const responseText = '响应正文 · 你好 café 😀\nSecond line';
 const binary = Buffer.from([0, 255, 1, 128, 65, 10, 13, 127, 254, 42]);
@@ -177,7 +177,7 @@ ipcMain.handle(fixtureChannel, async (event, payload) => {
   assertProductSender(event);
   if (!payload || typeof payload !== 'object') throw Error('Invalid fixture request');
   if (payload.operation === 'acquire') {
-    const lease = randomUUID(), partition = `dsh-browser-electron-smoke-${randomUUID()}`;
+    const lease = randomUUID(), partition = `power-dsh-browser-electron-smoke-${randomUUID()}`;
     const storage = session.fromPartition(partition);
     storage.setPermissionRequestHandler((_guest, _permission, callback) => callback(false));
     storage.setPermissionCheckHandler(() => false);

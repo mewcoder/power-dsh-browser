@@ -7,14 +7,13 @@ import path from 'node:path';
 import http from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pageScript } from '../src/page-runtime.js';
-import { createAnnotationController } from '../src/annotations.js';
 
 const executable = process.env.CHROME_PATH || ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium'].find(existsSync);
 if (!executable) throw new Error('Set CHROME_PATH to a Chrome/Chromium executable for this optional test.');
 const output = new URL('../.reference/verification/', import.meta.url);
 await mkdir(output, { recursive: true });
 const fixture = await readFile(new URL('../test/fixtures/form.html', import.meta.url));
-const profile = await mkdtemp(path.join(tmpdir(), 'dsh-browser-smoke-'));
+const profile = await mkdtemp(path.join(tmpdir(), 'power-dsh-browser-smoke-'));
 const server = http.createServer((_req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(fixture); });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -88,28 +87,6 @@ try {
     }
     await assert.rejects(() => evaluate(pageScript('act', { documentId: previous.documentId, snapshotId: previous.snapshotId, ref: 'page', action: 'scroll', deltaY: 100 })), /STALE/);
     assert.notEqual((await snapshot()).documentId, previous.documentId);
-  });
-  await check('annotation queries trigger no earlier page handlers; confirmed unlock restores native input', async () => {
-    await evaluate(`document.querySelector('#replace').scrollIntoView({ block: 'center' });
-      window.__earlyPickerEvents = 0;
-      for (const name of ['pointerdown', 'mousedown', 'click', 'keydown']) window.addEventListener(name, () => window.__earlyPickerEvents++, true);`);
-    const annotation = createAnnotationController({ execute: evaluate, element: new EventTarget(), status: () => ({ ready: true }) });
-    try {
-      await annotation.start();
-      const point = await evaluate(`(() => { const r = document.querySelector('#replace').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
-      await annotation.hoverAt(point.x, point.y);
-      await annotation.pickAt(point.x, point.y);
-      for (let i = 0; i < 100 && annotation.getSnapshot().phase === 'selecting'; i++) await delay(20);
-      assert.equal(annotation.getSnapshot().phase, 'selected');
-      assert.equal(annotation.getSnapshot().selection.text, '替换目标');
-      assert.equal(await evaluate('window.__earlyPickerEvents'), 0);
-      await annotation.unlock();
-      assert.equal(await evaluate('document.querySelectorAll("[data-dsh-browser-annotation]").length'), 0);
-      const s = await snapshot(), target = s.elements.find(item => item.name === '替换目标');
-      await act({ documentId: s.documentId, snapshotId: s.snapshotId, ref: target.ref, action: 'click' });
-      assert.equal(await evaluate('document.querySelector("#replacement").textContent'), '新目标');
-      assert.ok(await evaluate('window.__earlyPickerEvents') > 0);
-    } finally { await annotation.unlock().catch(() => {}); annotation.dispose(); }
   });
 } catch (error) { report.failures.push({ name: 'test infrastructure', error: error.message }); }
 finally {

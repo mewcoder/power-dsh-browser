@@ -1,5 +1,5 @@
 // Runs only inside our guest. Deliberately closed operations: no model-supplied JavaScript.
-export function pageRuntime(request) {
+function pageRuntime(request) {
   const key = '__dshBrowserObservation_v1';
   const error = code => { throw new Error(code); };
   const visible = el => {

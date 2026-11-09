@@ -94,11 +94,11 @@ test('unknown operations, extra keys and malformed requests are rejected before 
   const invalid = [
     null, [], {}, { operation: 'sendCommand', lease: 'lease-a' },
     { operation: 'status', lease: 'lease-a', guestId: 12 },
-    { operation: 'screenshot', lease: 'lease-a', extra: true },
-    { operation: 'screenshot', lease: 'lease-a', options: { fullPage: 'yes' } },
-    { operation: 'screenshot', lease: 'lease-a', options: { nope: 1 } },
-    { operation: 'screenshot', lease: 'lease-a', query: {} },
-    { operation: 'screenshot', lease: 'lease-a', captureId: 'c' },
+    { operation: 'screenshot', lease: 'lease-a' },
+    { operation: 'emulate', lease: 'lease-a', options: { fullPage: 'yes' } },
+    { operation: 'emulate', lease: 'lease-a', options: { nope: 1 } },
+    { operation: 'emulate', lease: 'lease-a', query: {} },
+    { operation: 'emulate', lease: 'lease-a', captureId: 'c' },
     { operation: 'cookies', lease: 'lease-a', options: {} },
     { operation: 'cookies', lease: 'lease-a', options: { action: 'eat' } },
     { operation: 'emulate', lease: 'lease-a', options: { width: 800 } },
@@ -131,11 +131,11 @@ test('unknown operations, extra keys and malformed requests are rejected before 
 
 test('new capabilities require the owned product lease and reject other senders', async t => {
   const f = fixture(t);
-  code(await f.request('screenshot', {}, { sender: f.owner, senderFrame: {} }), 'NETWORK_FORBIDDEN');
-  code(await f.request('screenshot', {}, { sender: contents(), senderFrame: {} }), 'NETWORK_FORBIDDEN');
-  code(await f.request('screenshot', {}, f.otherEvent), 'NETWORK_LEASE_UNAVAILABLE');
-  code(await f.request('screenshot', { lease: 'missing' }), 'NETWORK_LEASE_UNAVAILABLE');
+  code(await f.request('emulate', {}, { sender: f.owner, senderFrame: {} }), 'NETWORK_FORBIDDEN');
+  code(await f.request('emulate', {}, { sender: contents(), senderFrame: {} }), 'NETWORK_FORBIDDEN');
   code(await f.request('emulate', {}, f.otherEvent), 'NETWORK_LEASE_UNAVAILABLE');
+  code(await f.request('emulate', { lease: 'missing' }), 'NETWORK_LEASE_UNAVAILABLE');
+  code(await f.request('accessibility', {}, f.otherEvent), 'NETWORK_LEASE_UNAVAILABLE');
   // Network operations keep the original codes when delegated.
   code(await f.request('status', {}, { sender: f.owner, senderFrame: {} }), 'NETWORK_FORBIDDEN');
   code(await f.request('status', {}, f.otherEvent), 'NETWORK_LEASE_UNAVAILABLE');
@@ -148,41 +148,25 @@ test('capabilities describes the versioned surface without a lease', async t => 
   const reply = await f.invoke({ operation: 'capabilities' });
   assert.equal(reply.ok, true);
   assert.equal(reply.value.version, 1);
-  for (const key of ['network', 'screenshot', 'emulate', 'cookies', 'accessibility', 'input', 'downloads', 'upload']) assert.equal(reply.value[key], true);
-  const required = ['status', 'start', 'list', 'read', 'body', 'frames', 'clear', 'stop', 'screenshot', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input', 'downloads', 'clearDownloads', 'downloadCancel', 'upload', 'capabilities'];
+  for (const key of ['network', 'emulate', 'cookies', 'accessibility', 'input', 'downloads', 'upload']) assert.equal(reply.value[key], true);
+  const required = ['status', 'start', 'list', 'read', 'body', 'frames', 'clear', 'stop', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input', 'downloads', 'clearDownloads', 'downloadCancel', 'upload', 'capabilities'];
   assert.deepEqual([...reply.value.operations].sort(), required.sort());
+  assert.equal(reply.value.screenshot, undefined);
   assert.equal((await f.request('capabilities')).ok, true);
   assert.equal(f.calls.auth, 0); assert.equal(f.guest.debugger.attaches, 0);
 });
 
-test('screenshot returns a PNG data URL and fullPage sets captureBeyondViewport', async t => {
+test('CDP screenshot is no longer exposed: the operation is rejected before authentication', async t => {
   const f = fixture(t);
-  f.guest.debugger.responses['Page.captureScreenshot'] = { data: 'iVBORw0K' };
-  const full = await f.request('screenshot', { options: { fullPage: true } });
-  assert.equal(full.ok, true);
-  assert.equal(full.value.format, 'png'); assert.equal(full.value.fullPage, true);
-  assert.equal(full.value.dataUrl, 'data:image/png;base64,iVBORw0K');
-  assert.deepEqual(f.guest.debugger.commands[0], { method: 'Page.captureScreenshot', params: { format: 'png', captureBeyondViewport: true } });
-  f.guest.debugger.commands.length = 0;
-  const view = await f.request('screenshot', { options: { selector: '#main' } });
-  assert.equal(view.value.fullPage, false);
-  assert.deepEqual(f.guest.debugger.commands[0].params, { format: 'png' });
-  assert.equal(f.guest.debugger.attaches, 2); assert.equal(f.guest.debugger.detaches, 2);
-});
-
-test('an oversized screenshot reply is rejected above the screenshot byte cap', async t => {
-  const f = fixture(t);
-  f.guest.debugger.responses['Page.captureScreenshot'] = { data: 'A'.repeat(5_500_000) };
-  code(await f.request('screenshot'), 'NETWORK_RESPONSE_TOO_LARGE');
-  // The debugger was attached for the attempt and is still detached afterwards.
-  assert.equal(f.guest.debugger.attaches, 1); assert.equal(f.guest.debugger.detaches, 1);
+  code(await f.request('screenshot'), 'INVALID_CAPABILITY_REQUEST');
+  assert.equal(f.calls.auth, 0); assert.equal(f.guest.debugger.attaches, 0);
 });
 
 test('CDP_BUSY when the debugger is already attached, and it is never detached by CDP ops', async t => {
   const busy = fixture(t);
   const started = await busy.request('start');
   assert.equal(started.ok, true);
-  code(await busy.request('screenshot'), 'CDP_BUSY');
+  code(await busy.request('emulate'), 'CDP_BUSY');
   assert.equal(busy.guest.debugger.attaches, 1); // only the network recorder attached
   const manual = fixture(t);
   manual.guest.debugger.attached = true;
@@ -287,10 +271,9 @@ test('legacy network channel runs only network operations and rejects the new ca
 
 test('cap channel exposes both CDP and network operations on the same lease', async t => {
   const f = fixture(t);
-  f.guest.debugger.responses['Page.captureScreenshot'] = { data: 'AAAA' };
-  const shot = await f.request('screenshot');
-  assert.equal(shot.ok, true);
-  assert.equal(shot.value.dataUrl, 'data:image/png;base64,AAAA');
+  const emulated = await f.request('emulate', { options: { width: 800, height: 600 } });
+  assert.equal(emulated.ok, true);
+  assert.deepEqual(emulated.value.applied, ['deviceMetrics']);
   const started = await f.request('start');
   assert.equal(started.ok, true);
   assert.equal((await f.request('status')).value.captureId, started.value.captureId);

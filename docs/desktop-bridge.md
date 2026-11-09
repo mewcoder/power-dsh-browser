@@ -1,4 +1,6 @@
-# Recoverable Desktop network bridge installer
+# PowerDSH Browser recoverable Desktop network bridge installer
+
+The product name is PowerDSH Browser (`power-dsh-browser`). Existing IPC channel identifiers, ASAR payload paths such as `lib/dsh-browser-bridge/`, manifest identifiers and byte hashes remain compatibility records from earlier versions. A brand rename does not rewrite an installed bridge or prove that a renamed package has been installed; migration and Desktop loading require separate verification. Keep historical manifests and their exact paths/hashes intact.
 
 ## 一键安装（推荐）
 

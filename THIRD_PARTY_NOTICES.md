@@ -1,4 +1,6 @@
-# Third-party notices
+# PowerDSH Browser — Third-party notices
+
+These notices record third-party sources referenced or adapted by PowerDSH Browser (`power-dsh-browser`). Source repository names, URLs, revisions and license attributions remain the original identifiers; the PowerDSH brand rename does not rename upstream projects or change their licenses.
 
 ## Nono-neko/dsh-browser
 

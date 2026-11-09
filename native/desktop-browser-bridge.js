@@ -11,13 +11,10 @@ export const DESKTOP_BROWSER_CHANNEL = 'dshx-browser:cap:v1';
 export const DESKTOP_LEGACY_NETWORK_CHANNEL = 'dsh-browser:network:v1';
 const INSTALLATION = Symbol.for('dshx-browser.cap.bridge.v1');
 const MAX_JSON_BYTES = 60000;
-// Screenshots carry a PNG data URL; allow a larger (still bounded) envelope so a
-// real viewport/full-page capture fits. The tool layer enforces the 4 MiB image cap.
-const MAX_SCREENSHOT_BYTES = 5_400_000;
 const CDP_TIMEOUT_MS = 8000;
 
 const NETWORK_OPERATIONS = Object.freeze(['status', 'start', 'list', 'read', 'body', 'frames', 'clear', 'stop']);
-const CDP_OPERATIONS = Object.freeze(['screenshot', 'emulate', 'clearEmulation', 'cookies', 'accessibility', 'input']);
+const CDP_OPERATIONS = Object.freeze(['emulate', 'clearEmulation', 'cookies', 'accessibility', 'input']);
 // Download tracking and file-input uploads are capability-channel-only. They are
 // intentionally absent from NETWORK_OPERATIONS so the legacy channel keeps
 // rejecting them as INVALID_NETWORK_REQUEST.
@@ -104,6 +101,8 @@ function validateNetwork(request) {
         if (typeof request.options[key] !== 'boolean') fail('INVALID_NETWORK_OPTIONS');
         continue;
       }
+      // Mirrors NETWORK_BUDGETS in src/constants.js (this module is injected
+      // into the host ASAR and cannot import plugin sources).
       const max = { maxRequests: 500, maxBodyBytes: 2 * 1024 * 1024, maxTotalBodyBytes: 16 * 1024 * 1024 }[key];
       if (!int(request.options[key], 1, max)) fail('INVALID_NETWORK_OPTIONS');
     }
@@ -136,12 +135,7 @@ function validateCdp(request) {
   const options = 'options' in request ? request.options : {};
   if (!object(options)) fail('INVALID_CAPABILITY_OPTIONS');
 
-  if (operation === 'screenshot') {
-    keys(options, ['fullPage', 'selector'], 'INVALID_CAPABILITY_OPTIONS');
-    if ('fullPage' in options && !bool(options.fullPage)) fail('INVALID_CAPABILITY_OPTIONS');
-    // selectors are accepted but intentionally unsupported in v1 (viewport/full only).
-    if ('selector' in options && !text(options.selector, 1024)) fail('INVALID_CAPABILITY_OPTIONS');
-  } else if (operation === 'emulate') {
+  if (operation === 'emulate') {
     keys(options, ['width', 'height', 'deviceScaleFactor', 'mobile', 'userAgent', 'timezone', 'media'], 'INVALID_CAPABILITY_OPTIONS');
     const hasWidth = 'width' in options, hasHeight = 'height' in options;
     if (hasWidth !== hasHeight) fail('INVALID_CAPABILITY_OPTIONS');
@@ -191,8 +185,7 @@ function validateCdp(request) {
 
 function envelope(value) {
   const json = JSON.stringify({ ok: true, value: value ?? null });
-  const max = value && typeof value.dataUrl === 'string' ? MAX_SCREENSHOT_BYTES : MAX_JSON_BYTES;
-  if (Buffer.byteLength(json, 'utf8') > max) return errorReply('NETWORK_RESPONSE_TOO_LARGE');
+  if (Buffer.byteLength(json, 'utf8') > MAX_JSON_BYTES) return errorReply('NETWORK_RESPONSE_TOO_LARGE');
   // JSON data only: never hand Electron a debugger, guest or arbitrary object.
   return JSON.parse(json);
 }
@@ -200,9 +193,9 @@ function envelope(value) {
 // `build` identifies the bridge surface. The plugin compares it with its own
 // expected value so a stale patch reports "reinstall the bridge" instead of
 // silently failing on a missing operation.
-const BRIDGE_BUILD = '2026-11-08.1';
+const BRIDGE_BUILD = '2026-11-08.2';
 const capabilities = () => ({
-  version: 1, build: BRIDGE_BUILD, operations: [...OPERATIONS], network: true, screenshot: true,
+  version: 1, build: BRIDGE_BUILD, operations: [...OPERATIONS], network: true,
   emulate: true, cookies: true, accessibility: true, input: true,
   downloads: true, upload: true,
 });
@@ -253,17 +246,6 @@ const boundNode = node => ({
   description: boundedText(node?.description?.value, 512),
   childIds: Array.isArray(node?.childIds) ? node.childIds.slice(0, 64).map(id => boundedText(id, 64)) : [],
 });
-
-async function screenshot(guest, options = {}) {
-  return withDebugger(guest, async debug => {
-    const params = { format: 'png' };
-    if (options.fullPage) params.captureBeyondViewport = true;
-    const result = await cdpCommand(debug, 'Page.captureScreenshot', params);
-    const data = typeof result?.data === 'string' ? result.data : '';
-    // selector is unsupported in v1: only viewport (or full page) is captured.
-    return { dataUrl: `data:image/png;base64,${data}`, format: 'png', fullPage: !!options.fullPage };
-  });
-}
 
 async function emulate(guest, options = {}) {
   return withDebugger(guest, async debug => {
@@ -361,7 +343,6 @@ async function input(guest, options = {}) {
 
 const runCdp = (operation, guest, options) => {
   switch (operation) {
-    case 'screenshot': return screenshot(guest, options);
     case 'emulate': return emulate(guest, options);
     case 'clearEmulation': return clearEmulation(guest);
     case 'cookies': return cookies(guest, options);
